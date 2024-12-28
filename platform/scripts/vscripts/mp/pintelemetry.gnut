@@ -2560,9 +2560,12 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 
 	void function __EndFight( entity victim, entity attacker, var damageInfo, float deathtime )
 	{
-		if( !file.gamemode_type_1v1 )
+		if( Flowstate_IsFastInstaGib() )
 			WaitEndFrame() //all data this function needs may not be wrote by it's coroutine yet.
 		
+		if( !damageInfo ) //there's some copy function for this somewhere
+			return
+			
 		if ( !IsValid( victim ) || ( !victim.IsPlayer() && !victim.IsNPC() ) || !IsValid( attacker ) )
 		{
 			#if DEVELOPER
