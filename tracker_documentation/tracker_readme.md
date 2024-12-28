@@ -1,4 +1,4 @@
-# Tracker for Flowstate 2.5, vGameSDK013_patch, sdk: 2.5 rc5 base.
+# Tracker for Flowstate 4.5, vGameSDK013_patch, sdk: 2.5 rc5 base.
  Drag and drop all files into root R5Reloaded folder. 
 
 # For verified hosts, generate your config file here:
