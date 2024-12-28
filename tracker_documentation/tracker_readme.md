@@ -35,4 +35,4 @@ restricted_kd									0.7		// Minimum K/D ratio required to join \
 restricted_playtime								10000	// Minimum play time in seconds required to join \
 restricted_gamesplayed							10		// Minimum games played required to join \
 restricted_rank									200		// Minimum rank required to join \
-restricted_kick_log								1 \
+restricted_kick_log								1
