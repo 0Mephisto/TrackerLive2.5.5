@@ -1,11 +1,11 @@
-Drag and drop all files into root R5Reloaded folder. 
+# Tracker for Flowstate 2.5, vGameSDK013_patch, sdk: 2.5 rc5 base.
+ Drag and drop all files into root R5Reloaded folder. 
 
-For verified hosts, generate your config file here:
-https://r5r.dev/cp/?tab=config
+# For verified hosts, generate your config file here:
+ https://r5r.dev/cp/?tab=config
 
-Otherwise, move R5Reloaded/tracker/examples/r5rdev_config.json to R5Reloaded/platform/
-
-Finally: Ensure default tracker playlists settings are correct:
+# Otherwise, move R5Reloaded/tracker/examples/r5rdev_config.json to R5Reloaded/platform/
+# Finally: Ensure default tracker playlists settings are correct:
  \
  \
  \
