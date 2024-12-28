@@ -1,0 +1,23 @@
+{
+    "apikey": "",
+    "identifier": "myserver",
+    "logfolder": "logevents",
+    "webhooks": {
+        "PLAYERS_WEBHOOK": ""
+    },
+    "server": {
+        "MAX_LOGFILE_DIR_SIZE": "20",
+        "AUTO_DELETE_STATLOGS": "true",
+        "DELETE_ALL_LOGS": "true",
+        "CVAR_MAX_BUFFER": "50000"
+    },
+    "settings": {
+        "PLAYER_WHITELIST": "",
+        "ADMINS": "",
+        "ENABLE_CHATBOT": "false",
+        "CHATBOT_PREFIX": "SERVER",
+        "INTERVAL_MESSAGES": "start=Welcome to an R5Reloaded server",
+        "LOOP_MESSAGES_INTERVAL": "20",
+        "LOOP_MESSAGES": ""
+    }
+}

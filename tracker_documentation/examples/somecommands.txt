@@ -1,0 +1,391 @@
+
+
+____________________________________________________________________________________________________________________________________________________________
+
+List of some public command:
+____________________________________________________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________________________________________________
+
+
+
+
+
+wait [number]
+
+	0-2 disables input based matchmaking.  3+ enables looking for same input for [number] amount of seconds 
+
+
+show map
+
+	returns current map name
+
+
+show round
+
+	returns current round
+
+
+show player [name/oid]
+
+	returns info about specific player (stats, input, etc)
+
+
+show input
+
+	returns list of players and their input devices
+
+
+show stats
+	
+	returns a list of players and their (global) stats if connected
+
+
+  (lg duels):
+handicap [0/1]
+
+	enables /disables handicap
+
+hitsound [0/16]
+
+	sets hitsound to available hitsounds
+
+show aa
+
+	shows current aa values of server
+
+show id
+
+	shows current match id
+
+
+
+____________________________________________________________________________________________________________________________________________________________
+
+list of some cc administrationc commands:
+____________________________________________________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________________________________________________
+
+Feedback is displayed as an on screen message (currently)
+You wont be able to see feedback if you are in the fighting queue, as it hides the overlays.
+
+Usage: cc [command] [param] [param2] [param3]
+
+cc help
+
+	Shows a message on screen with some commands and their syntax.
+
+
+cc cleanuplogs
+
+	manually deletes logs in your configured log folder, at your configured threshold.  default: 20mb, 
+
+
+cc setting [key]
+
+	returns the value currently set in the map for that key
+
+
+cc kick [playername/oid]
+
+	Kicks a player by name or oid. // Player must be in server 
+
+
+cc afk [0/1]
+
+	1 enables afk to rest, 0 disables afk to rest (only applies to current rounds (map change will reset it))
+
+
+cc sayall [title] [message] [duration]
+
+	Says a message to all clients. Use quotes if a param has spaces.  "for example"
+
+
+cc ban [playername/oid]
+
+	Bans a player by name or oid //player MUST be in server. ip/oid/handle ban
+
+
+cc banid [oid] [ip-address]
+
+	Adds an oid to the banlist even if the player isn't in the server
+
+
+cc unban [oid]
+
+	Removes a ban from the playlist by oid.
+
+
+cc playerinfo
+
+	Prints json player stats struct 
+
+
+cc zero [playername]
+
+	Removes a player's current metrics array (doesn't effect already recorded kills/deaths/damage struct) -- used for testing
+
+
+cc playerinput [playername/oid]
+
+	Prints specific player's current input
+
+
+cc input [playername/oid] [0/1]
+
+	For testing: Changes player's input type to 0 = MnK, 1 = Controller
+
+
+cc listhandles
+
+	Lists all player's handles in the server
+
+
+___________________________________________________________________________________________
+
+cc map [mapname] [gametype]
+
+	Changes map. Can use short name for both, or long name.  If invalid,uses current gamemode or current map or both. i.e. entering cc map will reset reload current map and game mode.
+
+
+
+
+___________________________________________________________________________________________
+
+Current maps:
+___________________________________________________________________________________________
+["dropoff", "mp_rr_arena_composite"],
+["overflow", "mp_rr_aqueduct"],
+["firingrange", "mp_rr_canyonlands_staging"],
+["kingscanyon", "mp_rr_canyonlands_64k_x_64k"],
+["kingscanyons2", "mp_rr_canyonlands_mu1"],
+["kingscanyonafterdark", "mp_rr_canyonlands_mu1_night"],
+["worldsedge", "mp_rr_desertlands_64k_x_64k"],
+["worldsedgeafterdark", "mp_rr_desertlands_64k_x_64k_nx"],
+["miragevoyage", "mp_rr_desertlands_64k_x_64k_tt"],
+["partycrasher", "mp_rr_party_crasher"],
+["skygarden", "mp_rr_arena_skygarden"],
+["ashsredemption", "mp_rr_ashs_redemption"],
+["overflownight", "mp_rr_aqueduct_night"]
+
+____________________________________________________________________________________________________________________________________________________________
+
+Current Game modes:
+____________________________________________________________________________________________________________________________________________________________
+
+["1v1", "fs_1v1"],
+["dm", "fs_dm"],
+["tdm", "fs_tdm"],
+["prophunt", "fs_prophunt"],
+["duckhunt", "fs_duckhunt"],
+["solobr", "fs_survival_solos"],
+["duobr", "fs_survival_duos"],
+["triobr", "fs_survival_trios"],
+["surf", "fs_surf"],
+["gym", "fs_movementgym"],
+["infected", "fs_infected"],
+["survival", "fs_survival"],
+["survivaldev", "survival_dev"]
+
+
+
+cc score [name/oid/ */current/lifetime/difference]
+
+	Shows score informaiton for player by name/oid, or * for all players.  current/lifetime/difference shows current server settings.
+
+
+- cc scoreconfig [current/lifetime/difference] [value]
+
+	Sets components of score for current rounds. value must be a float. 
+
+
+
+-----------------------------------------------------------------------------------------------------------------
+
+cc playonself [audiofile]
+
+	Emits sound from your player entity
+
+
+cc playself [audiofile]
+
+	Emits sound on your entity only to you
+
+
+cc playall [audiofile]
+
+	Emits sound on all players
+
+
+cc stopplayall [audiofile]
+
+	Stops sound for all players (edited)
+
+
+cc cleanuplogs
+
+	Manually clears logs based on settings in r5rdev_config.json
+
+cc reload_config
+
+	Reloads r5rdev_config.json settings into memory
+
+cc setting [keyname]
+
+	Displays value of key from config file.  sub keys must be specified with "."   for example, to show admins, it's:    cc setting settings.ADMINS
+
+cc spamupdate
+
+	Infinitely announces to all players the server is going to update and shut down.
+
+cc stopspam
+
+	Stops update message loop in case of accidental usage.
+
+cc vc [0/1]
+
+	Enables or disables voice chat ( can be enabled and then disabled mid game )
+
+cc startbr
+
+	Starts br regardless of player count
+
+cc msg
+
+	Say a message as the server bot
+
+
+////SOME DEBUG
+
+cc groups
+
+	Shows number of active groupsInProgress
+
+cc groupmap
+
+	shows number of slots occupied in the playerToGroupMap table
+
+cc start_interval_thread
+
+	manually restart the msg interval thread
+
+cc kill_interval_thread
+
+	manually kill the msg interval thread
+
+/////////////////////////////
+
+cc nextmap
+
+	manually cycle to next map in the maplist.
+	
+
+/////////////////////////////
+
+cc fetchsetting
+
+	fetches a player's persistence setting by playername/oid and setting key 
+	
+cc acceptchal
+
+	manually accept a challenge by playername/oid 
+	
+cc draw/disabledraw 
+
+	manually enable/disable minimap draw/disabledraw
+	
+cc stoplog [true/false 1/0]
+
+	manually stop and optionally ship stats (will be marked as incomplete)
+	
+cc startlog 
+
+	manually restart-logging as if it were another round 
+	
+cc killme 
+
+	kills caller 
+	
+cc dmg [playername/oid] [amount]
+
+	damage specified player by amount from source: worldspawn 
+	
+cc movement_recorder_playback_rate
+
+	change rate of playback 
+	
+cc kill_banners
+
+	kill all banner asset groups 
+	
+cc start_banners
+
+	restart all registered banner groups 
+	
+
+
+
+
+# Updates to ingame cc system
+
+- new term to memorize: "**timestring**"
+> timestring = A term to describe my custom format many commands will begin to use. 
+
+## A time string consists of:
+1: how much  2:of what
+
+- A time string can be any combination of, multiples of, omissions of:
+
+	year/years
+	month/months
+	day/days
+	hour/hours
+	minutes/mins/min/minute
+	second/secs/sec/second
+
+
+Valid time string:   1 min 2 min 5 seconds
+
+> This results in a produced time of three minutes, and five seconds. How this is used varies. 
+> Many new cc commands are also flag based. This means they can be in any order, and must have valid flags with valid values such as `-r "verbally abusive"` for "*reason*".
+
+
+
+# New Commands ( and alias ):
+
+- **mute/gag** ( this is a textmute, voice will be explicitely voice_mute  )
+[
+> `cc mute r5mkos -1` permanent mute.  0 and -1 are universal flags and do not require a value. They can be used as values, even though they are flags like `-r` ( depends on context as well )
+> 
+> `cc mute r5mkos 2 min -r "Cool down for a few minutes"`
+> The player will be muted, and set to auto unmute in 2 mins, even if the server crashes or the player leaves. The reason is saved to the player as well, and can be reviewed by other admins. The reason is shown to the player upon being muted, even if they joined after being muted.
+> 
+> It is possible to mute/unmute players who are not in the server and this takes effect immediately regardless of server state.
+]
+
+- **unmute/ungag**
+[
+> `cc unmute r5mkos 3 mins -r "I typed this 3 mins ago."`
+> The player will be unmuted at a later time if a **timestring** is provided. This will work even for years. The reason will replace the muted reason however, so omit if the record should stand. Todo: ( show reason to player on unmute? )
+]
+
+- **is_muted/is_gagged**
+[
+> `cc is_muted r5mkos`
+> Returns true/false.
+}
+
+- **mute_reason/gag_reason**
+[
+> `cc mute_reason r5mkos`
+> Returns the stored reason set by muter.
+]
+
+- **unmute_time/ungag_time**
+[
+> `cc unmute_time r5mkos`
+> Returns the amount of time in time string readable format until unmute.
+]
