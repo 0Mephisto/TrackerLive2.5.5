@@ -7815,21 +7815,21 @@ string s_victimErrorUIDString = ""
 
 void function Callback_OnPlayerKilled_FSCommon( entity victim, entity attacker, var damageInfo )
 {
-	if( !IsValid( attacker ) )
-		return 
-		
-	int attackerKills = attacker.GetPlayerNetInt( "kills" )	
-	if( attackerKills >= MAX_GAMESTAT_NET_INT )
-	{
-		#if TRACKER 
-			LogError( "player '" + attacker.GetPlatformUID() + "' reached " + attackerKills + " [kills] in a match." )
-		#endif 
-		
-		attacker.SetPlayerNetInt( "kills", minint( attackerKills, MAX_GAMESTAT_NET_INT ) )
-		EndRound()
+	if( IsValid( attacker ) && attacker.IsPlayer() )
+	{ 	
+		int attackerKills = attacker.GetPlayerNetInt( "kills" )	
+		if( attackerKills >= MAX_GAMESTAT_NET_INT )
+		{
+			#if TRACKER 
+				LogError( "player '" + attacker.GetPlatformUID() + "' reached " + attackerKills + " [kills] in a match." )
+			#endif 
+			
+			attacker.SetPlayerNetInt( "kills", minint( attackerKills, MAX_GAMESTAT_NET_INT ) )
+			EndRound()
+		}
 	}
 		
-	if( !IsValid( victim ) )
+	if( !IsValid( victim ) || !victim.IsPlayer() )
 		return 
 		
 	int victimKills = victim.GetPlayerNetInt( "deaths" )
