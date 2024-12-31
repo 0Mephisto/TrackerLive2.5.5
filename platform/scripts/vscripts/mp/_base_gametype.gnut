@@ -1433,6 +1433,9 @@ function OnPlayerCloseClassMenu( entity player )
 //  playerconnected Reload
 void function CodeCallback_OnClientReloadConnectionCompleted( entity player )
 {
+	if( !player )
+		return
+		
 	if( player.p.clientScriptInitialized )
 		return
 

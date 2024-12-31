@@ -78,6 +78,8 @@ global function WaitForChampionToFinish
 global const float SHORT_CHAMPION_CARD_TIME = 7.0
 global function FS_ResetMapLightning
 global function PrintKillHistoryFor
+global function Flowstate_IsRealisticMode
+global function Halo_GotoNextPlaylist
 
 #if DEVELOPER
 	global function DEV_NextRound
@@ -168,8 +170,9 @@ struct
 	
 	array< void functionref() > tdmStateInProgressCallbacks
 	bool bIsChampionShowing
+	table<string, LocationSettings> locationSettingsMap = {}
 	
-	
+	array< SpawnData > gamemodeSpawns = []
 	
 } file
 
@@ -222,6 +225,7 @@ struct
 	bool give_random_custom_models_toall
 	bool bIs1v1ModeEnabled
 	bool show_short_champion_screen
+	bool bRealisticMode
 	
 	//string settings 
 	string custom_match_ending_title
@@ -283,6 +287,12 @@ void function InitializePlaylistSettings()
 	flowstateSettings.allow_cfgs 							= GetCurrentPlaylistVarBool( "flowstate_allow_cfgs", false )					
 	flowstateSettings.give_random_custom_models_toall		= GetCurrentPlaylistVarBool( "flowstate_give_random_custom_models_toall", false )
 	flowstateSettings.show_short_champion_screen			= GetCurrentPlaylistVarBool( "show_short_champion_screen", true )
+	flowstateSettings.bRealisticMode						= GetCurrentPlaylistVarBool( "realistic_mode", false )
+}
+
+bool function Flowstate_IsRealisticMode()
+{
+	return flowstateSettings.bRealisticMode
 }
 
 void function ResetLoadedWeapons( entity player )
@@ -412,6 +422,8 @@ void function _CustomTDM_Init()
 			}
 		}
 	)
+	
+	AddCallback_OnPlayerKilled( Callback_OnPlayerKilled_FSCommon )
 
 	if ( FlowState_SURF() )
 	{
@@ -488,7 +500,226 @@ void function _CustomTDM_Init()
 	
 	if( Flowstate_ModeDissolveItems() && Flowstate_GetDissolveTime() > 0.0 )
 		AddSpawnCallback( "prop_survival", Common_DissolveDropable )
+		
+	if( flowstateSettings.bRealisticMode )
+		AddCallback_OnPlayerRespawned( RealisticMode_OnSpawned )
+		
+	if( flowstateSettings.bRealisticMode )
+	{
+		RegisterSignal( "PlayerSkyDive" )
+		AddCallback_EntitiesDidLoad( InitializeDoorTracking )
+		RealisticTTV_Init()
+	}	
 }
+
+//RealisticMode doors
+
+void function RealisticTTV_Init()
+{
+	Flowstate_SpawnSystem_InitGamemodeOptions()
+	
+	int eMap = SpawnSystem_FindBaseMapForPak( MapName() )
+	file.gamemodeSpawns = SpawnSystem_ReturnAllSpawnLocations( eMap )
+	
+	AddCallback_OnPlayerWeaponAttachmentChanged( Realistic_OnWeaponAttachmentChanged )
+	
+	#if DEVELOPER 
+		printw( "Realistic TTV Spawns loaded for ", AllMapsArray()[ eMap ] )
+	#endif
+}
+
+void function Realistic_OnWeaponAttachmentChanged( entity player, entity weapon, string modToAdd, string modToRemove )
+{
+	if( !CheckRate( player ) )
+		return
+	//(mk):only intended for realistic ttv mode 		
+	ClientCommand_SaveCurrentWeapons( player, [] )
+}
+
+struct doorDataStruct
+{
+    entity door
+    vector origin
+    vector angles
+    asset model
+    string scriptName
+	float lastDestroyTime
+}
+
+array<doorDataStruct> trackedDoors
+void function UpdateDestroyTime( entity door )
+{
+	foreach( doorDataStruct data in trackedDoors )
+	{
+		if( data.door == door )
+		{
+			//printt( "UpdateDestroyTime() Found door, setting destroy time to:", Time() )
+			data.lastDestroyTime = Time()
+			break
+		}
+	}
+}
+
+bool function InTrackedDoors( entity door )
+{
+	foreach( data in trackedDoors )
+	{
+		if( data.door == door )
+			return true
+	}
+	
+	return false
+}
+
+int iMonitoredDoors = 0
+void function RunDoorMonitor( entity door )
+{
+	printw( "Checking to run door monitor" )
+	if( InTrackedDoors( door ) )
+	{
+		//printt( " --- SUCCESS --- : running monitor" )
+		thread RunDoorMonitor_Thread( door )
+		iMonitoredDoors++
+	}
+	else 
+	{
+		//printt( "ERROR. Door is not in tracked doors." )
+	}
+}
+
+void function RunDoorMonitor_Thread( entity door )
+{
+	if( !IsValid( door ) ) //threaded off 
+		return
+		
+	svGlobal.levelEnt.EndSignal( "GameEnd" )
+	door.EndSignal( "OnDestroy" )
+	
+	OnThreadEnd
+	(
+		void function() : ( door )
+		{
+			if( InTrackedDoors( door ) )
+				UpdateDestroyTime( door )
+			#if DEVELOPER
+			//else
+				//printt( "Not in tracked doors?", door )
+			#endif
+		}
+	)
+	
+	#if DEVELOPER
+		//printt( "Waiting for destroy" )
+	#endif 
+	
+	WaitForever()
+}
+
+const vector TTV_BUILDING_ORIGIN = < 9864.35, 5497.93, -3567.97 >
+const float TTV_BUILDING_RADIUS = 4500.0
+void function CollectAllDoors()
+{
+    foreach ( door in GetAllPropDoors() )
+    {
+        if ( !IsValid( door ) )
+            continue
+								
+		float distance = Distance2D( door.GetOrigin(), TTV_BUILDING_ORIGIN )
+        if ( distance > TTV_BUILDING_RADIUS )
+        {
+			#if DEVELOPER
+				//printt( "Skipping door outside radius" )
+			#endif 
+			
+            continue
+        }
+		
+        doorDataStruct doorData
+		
+        doorData.door = door
+        doorData.origin = door.GetOrigin()
+        doorData.angles = door.GetAngles()
+        doorData.model = door.GetModelName()
+        doorData.scriptName = door.GetScriptName()
+
+        trackedDoors.append( doorData )
+		RunDoorMonitor( door )
+		
+        #if DEVELOPER
+			//printt( "adding door at:", doorData.origin )
+		#endif
+    }
+	
+	#if DEVELOPER
+		printw( "Total Doors Added:", trackedDoors.len() )
+		printw( "Total door monitors:", iMonitoredDoors )
+	#endif
+}
+
+//!RealisticMode
+const float DOOR_RESPAWN_PLAYER_RADIUS_LIMIT = 130.0
+const float DOOR_REGEN_GRACE = 60
+void function RespawnDoor( doorDataStruct doorData )
+{
+    if ( IsValid( doorData.door ) )
+        return
+	
+	#if DEVELOPER
+		Warning( "Spawning visual debug sphere at", VectorToString( doorData.origin ) )
+		DebugDrawSphere( doorData.origin, DOOR_RESPAWN_PLAYER_RADIUS_LIMIT, 255, 0, 0, true, 5.0 )
+	#endif 
+	
+	array<entity> nearbyEntities = ArrayEntSphere( doorData.origin, DOOR_RESPAWN_PLAYER_RADIUS_LIMIT )
+	
+	bool bNearbyPlayerFound = false
+	foreach ( entity ent in nearbyEntities )
+	{
+		if ( ent.IsPlayer() )
+		{
+			bNearbyPlayerFound = true 
+			break
+		}
+	}
+			
+	if( bNearbyPlayerFound )
+		return
+
+	if( doorData.lastDestroyTime > Time() - DOOR_REGEN_GRACE ) 
+		return
+
+    entity newDoor = CreateEntity( "prop_door" )
+    
+	newDoor.SetOrigin( doorData.origin )
+    newDoor.SetAngles( doorData.angles )
+    newDoor.SetModel( doorData.model )
+    newDoor.SetScriptName( doorData.scriptName )
+
+    DispatchSpawn( newDoor )
+
+    doorData.door = newDoor
+
+    #if DEVELOPER
+		//printt("Respawned door at:", doorData.origin, "with model:", doorData.model);
+    #endif
+}
+
+void function DoorRespawn_Thread()
+{
+    for( ; ; )
+    {
+        foreach ( doorData in trackedDoors )
+            RespawnDoor( doorData )
+
+        wait 5
+    }
+}
+
+void function InitializeDoorTracking()
+{
+    CollectAllDoors()
+    thread DoorRespawn_Thread()
+}
+
 
 void function __OnEntitiesDidLoadCTF()
 {
@@ -589,8 +820,38 @@ void function DM__OnEntitiesDidLoad()
 
 void function _RegisterLocation(LocationSettings locationSettings)
 {
-    file.locationSettings.append(locationSettings)
+	int index = file.locationSettings.len() 
+	locationSettings.index = index
+	
+    file.locationSettings.append( locationSettings )	
+	file.locationSettingsMap[ locationSettings.name ] <- locationSettings	
     file.droplocationSettings.append(locationSettings)
+}
+
+int function DetermineLockedPOI()
+{ 
+	int potentialPOI = GetLocationSettingsIndexByName( GetCurrentPlaylistVarString( "locked_poi_name", "" ) )
+	return potentialPOI > -1 ? potentialPOI : FlowState_LockedPOI() 
+}
+
+int function GetLocationSettingsIndexByName( string name )
+{
+	if( name in file.locationSettingsMap )
+	{
+		#if DEVELOPER
+			printw( "resolved location:", name )
+		#endif 
+		
+		return file.locationSettingsMap[ name ].index
+	}
+	else 
+	{
+		#if DEVELOPER
+			printw( "location by name not found:", name )
+		#endif
+	}
+		
+	return -1
 }
 
 LocPair function _GetVotingLocation()
@@ -700,19 +961,23 @@ void function SetFallTriggersStatus(bool status){
 	file.FallTriggersEnabled = status
 }
 
-LocPair function _GetAppropriateSpawnLocation(entity player)
+LocPair function _GetAppropriateSpawnLocation( entity player )
 {
-	switch(GetGameState())
+	switch( GetGameState() )
     {
         case eGameState.MapVoting:
 			return _GetVotingLocation()
         case eGameState.Playing:
 
-			if(IsFFAGame())
+			if( flowstateSettings.bRealisticMode )
+				return FS_SpawnSystem_GetBestSpawnPointFFA()
+				
+			if( IsFFAGame() )
 				return Flowstate_GetBestSpawnPointFFA()
 			else
 				return Flowstate_GetBestSpawnPointFFA() // !FIXME
     }
+	
 	return _GetVotingLocation() //this should be unreachable
 }
 
@@ -740,6 +1005,38 @@ LocPair function Flowstate_GetBestSpawnPointFFA()
 			compareDis = dis
 		}
 	}
+    return finalLoc
+}
+
+
+LocPair function FS_SpawnSystem_GetBestSpawnPointFFA()
+{
+	if( file.gamemodeSpawns.len() == 0  )
+		Warning( "No spawns defined for gamemode" )
+		
+	table<LocPair, float> SpawnsAndNearestEnemy = {}
+
+	foreach( SpawnData dataSpawn in file.gamemodeSpawns )
+    {
+		array<float> AllPlayersDistancesForThisSpawnPoint
+		
+		foreach( player in GetPlayerArray_Alive() )
+			AllPlayersDistancesForThisSpawnPoint.append( Distance( player.GetOrigin(), dataSpawn.spawn.origin ) )
+		AllPlayersDistancesForThisSpawnPoint.sort()
+		SpawnsAndNearestEnemy[ dataSpawn.spawn ] <- AllPlayersDistancesForThisSpawnPoint[0] //grab nearest player distance for each spawn point
+	}
+
+	LocPair finalLoc
+	float compareDis = -1
+	foreach( loc, dis in SpawnsAndNearestEnemy ) //calculate the best spawn point which is the one with the furthest enemy of the nearest
+	{
+		if( dis > compareDis )
+		{
+			finalLoc = loc
+			compareDis = dis
+		}
+	}
+	
     return finalLoc
 }
 
@@ -1164,6 +1461,9 @@ void function _OnPlayerDied( entity victim, entity attacker, var damageInfo )
             // Víctim
             void functionref() victimHandleFunc = void function() : ( victim, attacker, damageInfo ) 
 			{
+				if( !IsValid( victim ) || !victim.IsPlayer() ) //(mk): threaded off..check again 
+					return 
+					
 				// Respawn timer calculation
 				float decidedWaitTime = 0.0
 				
@@ -1187,17 +1487,22 @@ void function _OnPlayerDied( entity victim, entity attacker, var damageInfo )
 					if( Flowstate_IsFastInstaGib() )
 						decidedWaitTime = STATIC_WAIT_TIME
 				}
-				
+					
 				Remote_CallFunction_ByRef( victim, "ForceScoreboardLoseFocus" )
 				
 				//(mk): I originally intended this to be apart of a lifestate change or YouDied callback, and setting UpdateNextRespawnTime( entity player, float time ), client using: GetNextRespawnTime( player )  but due to various mode behavior, it's better left as a remote func call.
 				Remote_CallFunction_Replay( victim, "Flowstate_ShowRespawnTimeUI", int( DEATHCAM_TIME_SHORT + decidedWaitTime ) )//+ DEATHCAM_TIME_SHORT ) )
 
-				if( flowstateSettings.is_halo_gamemode )
+				if( flowstateSettings.is_halo_gamemode || flowstateSettings.bRealisticMode )
 				{
-					SURVIVAL_Death_DropLoot( victim, damageInfo )
-					Remote_CallFunction_NonReplay( victim, "FS_ForceDestroyCustomAdsOverlay" )
+					SURVIVAL_Death_DropLoot( victim, damageInfo ) //(mk):this wait threads inside.
+					
+					if( flowstateSettings.is_halo_gamemode )
+						Remote_CallFunction_NonReplay( victim, "FS_ForceDestroyCustomAdsOverlay" )
 				}
+
+				if( !IsValid( victim ) ) //(mk): SURVIVAL_Death_DropLoot waitthreads
+					return
 
 				entity weapon = victim.GetActiveWeapon( eActiveInventorySlot.mainHand )
 				
@@ -1284,13 +1589,17 @@ void function _OnPlayerDied( entity victim, entity attacker, var damageInfo )
 	    		if(IsValid(attacker) && attacker.IsPlayer() && IsAlive(attacker) && attacker != victim)
                 {
 	    			//Heal
-	    			if(FlowState_RandomGunsEverydie() && FlowState_FIESTAShieldsStreak())
+	    			if( FlowState_RandomGunsEverydie() && FlowState_FIESTAShieldsStreak() )
 					{
 	    			    PlayerRestoreHPFIESTA(attacker, 100)
 	    			    UpgradeShields(attacker, false)
-	    			} else 
+	    			} 
+					else 
 					{
-						PlayerRestoreHP(attacker, 100, Equipment_GetDefaultShieldHP())
+						if( flowstateSettings.bRealisticMode )
+							PlayerGiveBonusHeals( attacker )
+						else
+							PlayerRestoreHP( attacker, 100, Equipment_GetDefaultShieldHP())
 					}
 
 	    			if(FlowState_KillshotEnabled())
@@ -1304,8 +1613,10 @@ void function _OnPlayerDied( entity victim, entity attacker, var damageInfo )
 	    			    GiveGungameWeapon(attacker)
 	    			    //KillStreakAnnouncer(attacker, false)
 	    			}
-
-	    			WpnAutoReloadOnKill(attacker)
+					
+					if( !flowstateSettings.bRealisticMode )
+						WpnAutoReloadOnKill( attacker )
+						
 	    			GameRules_SetTeamScore(attacker.GetTeam(), GameRules_GetTeamScore(attacker.GetTeam()) + 1)
 					
 					//lg_duel mkos
@@ -1526,8 +1837,8 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 			player.TakeNormalWeaponByIndexNow( WEAPON_INVENTORY_SLOT_PRIMARY_2 )
 			player.TakeOffhandWeapon( OFFHAND_MELEE )
 			
-			// player.GiveWeapon( "mp_weapon_melee_survival", WEAPON_INVENTORY_SLOT_PRIMARY_2, [] )
-			// player.GiveOffhandWeapon( "melee_pilot_emptyhanded", OFFHAND_MELEE, [] )
+			player.GiveWeapon( "mp_weapon_melee_survival", WEAPON_INVENTORY_SLOT_PRIMARY_2, [] )
+			player.GiveOffhandWeapon( "melee_pilot_emptyhanded", OFFHAND_MELEE, [] )
 
 			if( flowstateSettings.is_halo_gamemode )
 			{
@@ -1538,17 +1849,9 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 				player.GiveWeapon( "mp_weapon_melee_survival", WEAPON_INVENTORY_SLOT_PRIMARY_2, [] )
 				player.GiveOffhandWeapon( "melee_pilot_emptyhanded", OFFHAND_MELEE, [] )
 			}
+			
 		}catch(e420){
 		//AttachEdict rare crash
-		}
-
-		if( flowstateSettings.GiveAllOpticsToPlayer )
-		{
-			SetPlayerInventory( player, [] )
-			Inventory_SetPlayerEquipment(player, "backpack_pickup_lv3", "backpack")
-			array<string> optics = ["optic_cq_hcog_classic", "optic_cq_hcog_bruiser", "optic_cq_holosight", "optic_cq_threat", "optic_cq_holosight_variable", "optic_ranged_hcog", "optic_ranged_aog_variable", "optic_sniper_variable", "optic_sniper_threat"]
-			foreach(optic in optics)
-				SURVIVAL_AddToPlayerInventory(player, optic)
 		}
 	}
 
@@ -1617,7 +1920,6 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 			player.TakeOffhandWeapon( OFFHAND_ULTIMATE )
 			GiveRandomUlt( player )
 		}
-
 	}
 
 	if(FlowState_RandomGunsEverydie() && !FlowState_Gungame() && IsValid( player )) //fiesta
@@ -1661,7 +1963,8 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 	if( !player.HasPassive( ePassives.PAS_PILOT_BLOOD ) && 
 		!Flowstate_IsFS1v1() && 
 		!Flowstate_IsLGDuels() && 
-		!Flowstate_IsFastInstaGib() )
+		!Flowstate_IsFastInstaGib() && 
+		!flowstateSettings.bRealisticMode )
 	{
 		GivePassive(player, ePassives.PAS_PILOT_BLOOD)
 	}
@@ -1677,7 +1980,15 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 	Survival_SetInventoryEnabled( player, true )
 	SetPlayerInventory( player, [] )
 
-	if( Flowstate_IsFSDM() || flowstateSettings.is_halo_gamemode )
+	if( flowstateSettings.GiveAllOpticsToPlayer )
+	{
+		Inventory_SetPlayerEquipment(player, "backpack_pickup_lv3", "backpack")
+		array<string> optics = ["optic_cq_hcog_classic", "optic_cq_hcog_bruiser", "optic_cq_holosight", "optic_cq_threat", "optic_cq_holosight_variable", "optic_ranged_hcog", "optic_ranged_aog_variable", "optic_sniper_variable", "optic_sniper_threat"]
+		foreach(optic in optics)
+			SURVIVAL_AddToPlayerInventory(player, optic)
+	}
+
+	if( Flowstate_IsFSDM() && flowstateSettings.is_halo_gamemode )
 	{
 		const array<string> loot = [ "mp_weapon_frag_grenade_halomod", "mp_weapon_plasma_grenade_halomod" ]
 			foreach(item in loot)
@@ -1992,8 +2303,7 @@ void function __GiveWeapon( entity player, array<string> WeaponData, int slot, i
 		    Mods.append( strip(mod) )
 	}
 	
-	try
-	{
+	try{
 		entity weaponNew
 		if(IsValid(player))
 		{
@@ -2032,10 +2342,8 @@ void function __GiveWeapon( entity player, array<string> WeaponData, int slot, i
 			player.SetActiveWeaponBySlot(eActiveInventorySlot.mainHand, WEAPON_INVENTORY_SLOT_PRIMARY_0)
 			player.ClearFirstDeployForAllWeapons()			
 		}
-	}
-	catch(e420)
-	{
-		printt( "Invalid weapon name for tgive command?: " + e420 )
+	}catch(e420){
+		printt("Invalid weapon name for tgive command.")
 	}
 }
 
@@ -2127,19 +2435,77 @@ void function SetupInfiniteAmmoForWeapon( entity player, entity weapon)
 	}
 }
 
+const array<string> STANDARD_REALISTIC_KILL_LOOT = 
+[
+	"health_pickup_combo_small", 
+	"health_pickup_combo_small", 
+	"health_pickup_combo_large",
+	"health_pickup_health_large",
+	"mp_weapon_grenade_emp"
+]
+
+const array<string> STANDARD_SPAWN_LOOT = 
+[
+	"health_pickup_combo_small", //1
+	"health_pickup_combo_small", //2
+	"health_pickup_health_small", //3
+	"health_pickup_health_small", //4
+	"mp_weapon_grenade_emp", //5
+	"optic_cq_hcog_classic", //6
+	"optic_cq_hcog_bruiser", //7
+	"optic_cq_holosight", //8
+	"optic_ranged_hcog", //9
+	"optic_ranged_aog_variable" //10
+]
+
+void function PlayerGiveBonusHeals( entity player, bool spawn = false )
+{
+	if( !spawn )
+	{
+		foreach( ref in STANDARD_REALISTIC_KILL_LOOT )
+			SURVIVAL_AddToPlayerInventory( player, ref, 1 )
+	}
+	else 
+	{
+		foreach( ref in STANDARD_SPAWN_LOOT )
+			SURVIVAL_AddToPlayerInventory( player, ref, 1 )
+	}
+}
+
+void function RealisticMode_OnSpawned( entity player )
+{
+	thread
+	(
+		void function() : ( player )
+		{
+			wait 3
+			
+			if( !IsValid( player ) )
+				return
+			
+			player.TakeOffhandWeapon( OFFHAND_SLOT_FOR_CONSUMABLES )
+			player.GiveOffhandWeapon( CONSUMABLE_WEAPON_NAME, OFFHAND_SLOT_FOR_CONSUMABLES, [] )
+			player.TakeNormalWeaponByIndexNow( WEAPON_INVENTORY_SLOT_PRIMARY_2 )
+			player.TakeOffhandWeapon( OFFHAND_MELEE )
+			player.GiveWeapon( "mp_weapon_melee_survival", WEAPON_INVENTORY_SLOT_PRIMARY_2, [] )
+			player.GiveOffhandWeapon( "melee_pilot_emptyhanded", OFFHAND_MELEE, [] )	
+
+			PlayerGiveBonusHeals( player, true )
+		}
+	)()
+}
+
 void function GiveRandomPrimaryWeaponMetagame(entity player)
 {
 	int slot = WEAPON_INVENTORY_SLOT_PRIMARY_0
 	//todo: init outside func
 
-    array<string> Weapons = [
-		"mp_weapon_alternator_smg optic_cq_threat bullets_mag_l2 stock_tactical_l2 laser_sight_l2"
-		"mp_weapon_r97 laser_sight_l2 optic_cq_hcog_classic stock_tactical_l2 bullets_mag_l2",
-		"mp_weapon_r97 laser_sight_l2 optic_cq_hcog_classic stock_tactical_l2 bullets_mag_l2",
-		"mp_weapon_volt_smg laser_sight_l2 optic_cq_hcog_classic energy_mag_l2 stock_tactical_l2",
-		"mp_weapon_energy_shotgun optic_cq_threat shotgun_bolt_l2 stock_tactical_l2",
-		"mp_weapon_mastiff optic_cq_threat shotgun_bolt_l2 stock_tactical_l2",
-		"mp_weapon_shotgun optic_cq_threat shotgun_bolt_l2 stock_tactical_l2"
+    array<string> Weapons = 
+	[
+		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l2",
+		"mp_weapon_r97 optic_cq_threat bullets_mag_l2 stock_tactical_l2",
+		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l3",
+		"mp_weapon_vinson stock_tactical_l2 highcal_mag_l3",
 	]
 
 	//R5RDEV-1
@@ -2161,14 +2527,11 @@ void function GiveRandomSecondaryWeaponMetagame(entity player)
 	int slot = WEAPON_INVENTORY_SLOT_PRIMARY_1
 
 	//todo: init outside func..
-    array<string> Weapons = [
-		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l2 hopup_headshot_dmg",
-		"mp_weapon_rspn101 barrel_stabilizer_l2 optic_cq_hcog_classic stock_tactical_l2 bullets_mag_l2",
-		"mp_weapon_rspn101 barrel_stabilizer_l2 optic_cq_hcog_bruiser stock_tactical_l2 bullets_mag_l2",
-		"mp_weapon_vinson optic_cq_hcog_bruiser stock_tactical_l2 highcal_mag_l2",
-		"mp_weapon_vinson optic_cq_hcog_classic stock_tactical_l2 highcal_mag_l2",
-		"mp_weapon_energy_ar optic_cq_hcog_classic energy_mag_l2 stock_tactical_l2 hopup_turbocharger",
-		"mp_weapon_energy_ar optic_cq_hcog_bruiser energy_mag_l2 stock_tactical_l2 hopup_turbocharger"
+    array<string> Weapons =	
+	[
+		"mp_weapon_energy_shotgun optic_cq_threat shotgun_bolt_l2 stock_tactical_l2",
+		"mp_weapon_mastiff shotgun_bolt_l2 stock_tactical_l2",
+		"mp_weapon_shotgun shotgun_bolt_l2 stock_tactical_l2"
 	]
 
 	//R5RDEV-1
@@ -2190,17 +2553,14 @@ void function GiveRandomPrimaryWeapon(entity player)
 	int slot = WEAPON_INVENTORY_SLOT_PRIMARY_0
 
 	//todo: init outside func..
-    array<string> Weapons = [
+    array<string> Weapons =
+	[
 		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l2",
 		"mp_weapon_r97 optic_cq_threat bullets_mag_l2 stock_tactical_l2",
 		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l3",
 		"mp_weapon_vinson stock_tactical_l2 highcal_mag_l3",
-		"mp_weapon_hemlok optic_cq_hcog_classic stock_tactical_l2 highcal_mag_l2 barrel_stabilizer_l2",
-		"mp_weapon_lmg barrel_stabilizer_l1 stock_tactical_l3",
-        "mp_weapon_energy_ar energy_mag_l2 stock_tactical_l3",
-        "mp_weapon_alternator_smg bullets_mag_l3 stock_tactical_l3",
-        "mp_weapon_rspn101 stock_tactical_l2 bullets_mag_l2 barrel_stabilizer_l1"
 	]
+	
 
 	//R5RDEV-1
 	// foreach(weapon in Weapons)
@@ -2222,11 +2582,11 @@ void function GiveRandomSecondaryWeapon( entity player)
 
 	//todo: init outside func..
 	
-    array<string> Weapons = [
-		"mp_weapon_r97 optic_cq_hcog_classic stock_tactical_l1 bullets_mag_l2",
-		"mp_weapon_rspn101 optic_cq_hcog_classic stock_tactical_l1 bullets_mag_l2",
-		"mp_weapon_vinson optic_cq_hcog_classic stock_tactical_l1 highcal_mag_l3",
-		"mp_weapon_energy_ar optic_cq_hcog_classic hopup_turbocharger",
+    array<string> Weapons =	
+	[
+		"mp_weapon_energy_shotgun optic_cq_threat shotgun_bolt_l2 stock_tactical_l2",
+		"mp_weapon_mastiff shotgun_bolt_l2 stock_tactical_l2",
+		"mp_weapon_shotgun shotgun_bolt_l2 stock_tactical_l2"
 	]
 
 	//R5RDEV-1
@@ -2918,7 +3278,7 @@ void function SimpleChampionUI()
 			file.selectedLocation = file.locationSettings[ choice ]
 		
 		if( FlowState_LockPOI() )
-			file.selectedLocation = file.locationSettings[ FlowState_LockedPOI() ]
+			file.selectedLocation = file.locationSettings[ DetermineLockedPOI() ]
 	}
 	else
 	{
@@ -3909,6 +4269,14 @@ void function SimpleChampionUI()
 		////////////////////////////////
 		//////// 	NEXT MAP 	////////
 		////////////////////////////////
+		
+		if( Flowstate_IsHaloMode() && Flowstate_CycleHaloPlaylists() )
+		{
+			waitthread g__InternalCheckReload()
+			Halo_GotoNextPlaylist()
+			
+			return
+		}
 		
 		//(mk): cycle map
 		string to_map = GetMapName()
@@ -7345,6 +7713,35 @@ void function PrintKillHistoryFor( entity player )
 		printt( string( history.victim ), history.killTime, " seconds ago: ", Time() - history.killTime )
 }
 
+const array<int> cycleHaloPlaylists =
+[
+	ePlaylists.fs_haloMod_ctf,
+	ePlaylists.fs_haloMod_oddball,
+	ePlaylists.fs_haloMod
+]
+
+void function Halo_GotoNextPlaylist()
+{
+	if( !Flowstate_IsHaloMode() || !Flowstate_CycleHaloPlaylists() )
+		return
+		
+	string nextPlaylist = GetCurrentPlaylistName()
+    int currentPlaylistEnum = Playlist()
+    int currentIndex = cycleHaloPlaylists.find( currentPlaylistEnum )
+	int playlistLen = AllPlaylistsArray().len()
+    int nextIndex = ( currentIndex + 1 ) % playlistLen
+   
+	if( nextIndex > -1 && nextIndex < playlistLen )
+	{		
+		int nextPlaylistIndex = cycleHaloPlaylists[ nextIndex ]
+		nextPlaylist = AllPlaylistsArray()[ nextPlaylistIndex ]
+	}
+
+    GameRules_ChangeMap( GetMapName(), nextPlaylist ) //nope
+}
+///////////////////////////////////////////////endkos
+
+
 void function FS_Hack_CreateBulletsCollisionVolume( vector origin, float large = 15000 )
 {
 	float halfLarge = large/2
@@ -7410,4 +7807,47 @@ void function FS_Hack_CreateBulletsCollisionVolume( vector origin, float large =
 	
 	//Kill trigger
 	file.playerSpawnedProps.append( AddDeathTriggerWithParams( origin - <0,0,500>, large ) )
+}
+
+const int MAX_GAMESTAT_NET_INT = 510
+bool s_bVictimDeathErrorReported = false
+string s_victimErrorUIDString = ""
+
+void function Callback_OnPlayerKilled_FSCommon( entity victim, entity attacker, var damageInfo )
+{
+	if( !IsValid( attacker ) )
+		return 
+		
+	int attackerKills = attacker.GetPlayerNetInt( "kills" )	
+	if( attackerKills >= MAX_GAMESTAT_NET_INT )
+	{
+		#if TRACKER 
+			LogError( "player '" + attacker.GetPlatformUID() + "' reached " + attackerKills + " [kills] in a match." )
+		#endif 
+		
+		attacker.SetPlayerNetInt( "kills", minint( attackerKills, MAX_GAMESTAT_NET_INT ) )
+		EndRound()
+	}
+		
+	if( !IsValid( victim ) )
+		return 
+		
+	int victimKills = victim.GetPlayerNetInt( "deaths" )
+	if( victimKills >= MAX_GAMESTAT_NET_INT )
+	{
+		#if TRACKER 
+			if ( !s_bVictimDeathErrorReported && victim.GetPlatformUID() != s_victimErrorUIDString )
+			{
+				LogError( "player '" + victim.GetPlatformUID() + "' reached " + victimKills + " [deaths] in a match." )
+				s_bVictimDeathErrorReported = true
+			}		
+		#endif
+		
+		victim.SetPlayerNetInt( "deaths", minint( victimKills, MAX_GAMESTAT_NET_INT ) )
+	}
+}
+
+void function EndRound()
+{
+	g_fCurrentRoundEndTime = Time()
 }
