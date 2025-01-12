@@ -38,6 +38,7 @@ global function GetPlaylistMaps
 global function TP
 global function Tracker_DetermineNextMap
 global function Tracker_GotoNextMap
+global function PrepareForJson
 
 #if TRACKER && HAS_TRACKER_DLL
 	global function PrintMatchIDtoAll
@@ -2454,4 +2455,19 @@ void function Tracker_GotoNextMap()
 	string to_map = Tracker_DetermineNextMap()
 	sqprint( "Changing map to: " + to_map + " - Mode: " + GameRules_GetGameMode() )
 	GameRules_ChangeMap( to_map , GameRules_GetGameMode() )	
+}
+
+string function PrepareForJson( string data ) 
+{
+	if( !empty( data ) )
+	{
+		data = StringReplace( data, ",", "-" ) //temp until playersettings delimiter change or table typed is done.
+		data = StringReplace( data, "\"", "\\\"" )
+		data = StringReplace( data, "'", "\\'" )
+		data = StringReplace( data, "\n", "\\n" ) 
+		data = StringReplace( data, "\r", "\\r" ) 
+		data = StringReplace( data, "\t", "\\t" )
+	}
+	
+    return data
 }

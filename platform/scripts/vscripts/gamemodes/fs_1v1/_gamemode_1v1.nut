@@ -4019,7 +4019,8 @@ void function soloModeThread( LocPair waitingRoomLocation )
 				if ( !removed && group.IsFinished ) //this round has been finished //IsValid(group) &&
 				{
 					SetIsUsedBoolForRealmSlot( group.slotIndex, false )
-					
+					HandleOpponentInfo( group )
+										
 					soloModePlayerToWaitingList( group.player1 )
 					soloModePlayerToWaitingList( group.player2 )
 					destroyRingsForGroup( group )
@@ -5849,4 +5850,24 @@ void function SetupPlayerReserveAmmo( entity player, entity weapon )
 void function Gamemode1v1_SetWeaponAmmoStackAmount( int amount )
 {
 	settings.give_weapon_stack_count_amount = amount
+}
+
+void function HandleOpponentInfo( soloGroupStruct group )
+{
+	#if ( false ) && DEVELOPER
+		printt
+		( 
+			"Setting Opponents: \n", 
+			group.player1, 
+			"'s Opponent:", 
+			group.player2, 
+			"\n ",
+			group.player2, 
+			"'s Opponent:", 
+			group.player1 
+		)
+	#endif 
+	
+	group.player1.p.lastOpponent = group.player2
+	group.player2.p.lastOpponent = group.player1
 }

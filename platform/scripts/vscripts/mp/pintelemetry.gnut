@@ -306,10 +306,14 @@ typedef CheckFunc bool functionref( string, string  )
 typedef SerializeFunc string functionref( PlayerSettingsUpdate )
 typedef InstanceFunc PlayerSettings functionref( string, SettingsTable )
 typedef SaveSettingsFunc void functionref( string, table<string, string >, bool )
+typedef RegisterShipFunc void functionref( void functionref( string ), bool = false )
+typedef RunShipFunc void functionref( string )
 
 global struct Tracker
 {
 	array< string > settingsArr
+	array< void functionref( string ) > shipFunctions
+	table< void functionref( string ), bool > shipFunctionsWhen
 	
 	UpdateFunc 			update	
 	SyncFunc 			_updateSettingsPlayers
@@ -318,6 +322,8 @@ global struct Tracker
 	SerializeFunc 		serialize
 	InstanceFunc 		settingsInstance
 	SaveSettingsFunc	SavePlayerData
+	RegisterShipFunc	RegisterShipFunction
+	RunShipFunc			RunShipFunctions
 } 
 global Tracker tracker
 
@@ -509,6 +515,8 @@ void function __internals()
 	tracker.update					= __t_update
 	tracker._updateSettingsPlayers 	= __t_sync	
 	tracker.SavePlayerData			= __t_set
+	tracker.RegisterShipFunction	= __t_reg
+	tracker.RunShipFunctions		= __t_runship
 }
 
 PlayerSettings function __t_settings( string uid, SettingsTable settingsData )
@@ -568,6 +576,42 @@ void function __t_set( string uid, SettingsTable settingsTbl, bool sync )
 	if( sync )
 		tracker.update( tbl )
 }
+
+void function __t_reg( void functionref( string ) callbackFunc, bool bRunOnDisconnect = false )
+{
+	if( tracker.shipFunctions.contains( callbackFunc ) )
+	{
+		mAssert( false, "Tried to add callbackFunc " + string( callbackFunc ) + " but already exists in shipFunctions" )
+		return 
+	}
+	
+	if( bRunOnDisconnect )
+		tracker.shipFunctionsWhen[ callbackFunc ] <- true
+	else 
+		tracker.shipFunctionsWhen[ callbackFunc ] <- false
+		
+	tracker.shipFunctions.append( callbackFunc )
+}
+
+void function __t_runship( string uid )
+{
+	foreach( callback in tracker.shipFunctions )
+	{
+		if( tracker.shipFunctionsWhen[ callback ] == true )
+			callback( uid )
+	}
+}
+
+
+void function ShipFunction_OnDisconnected( entity player )
+{
+	if( !IsValid_ThisFrame( player ) )
+		return //should always still be valid tbh
+		
+	tracker.RunShipFunctions( player.p.UID )
+}
+
+
 
 void function CodeCallback_BatchStatsLoaded()
 {
@@ -1547,6 +1591,7 @@ void function __DestroyStats()
 	PlayerMetricsArray = []
 	playerVerifyCounts = []
 	PlayerIdMap = {}
+	Stats__ClearOutboundCache()
 	
 	foreach( string uid, StatsTable statsTbl in Stats__GetRoundStatsTables() )
 		Stats__ResetTableByValueType( statsTbl )
@@ -1624,6 +1669,8 @@ void function PIN_Init()
 	{
 		SetServerVar( "tracker_enabled", true )
 		AddCallback_OnTdmStateEnter_InProgress( Tracker_SetStartLog )
+		AddCallback_OnClientDisconnected( ShipFunction_OnDisconnected )
+		
 		FlagInit( "START_LOG", true )
 		thread __CONTROLLED_LogInit()
 	}
@@ -1682,9 +1729,13 @@ void function PIN_Init()
 		if( bRunTracker )
 		{	
 			file.bBatchFetchInit = true
+			
 			Script_RegisterAllStats()
+			Script_RegisterAllShipFunctions()
+			
 			file.requestedStatsList = BuildRequestedStatsString()
 			file.requestedSettingsList = BuildRequestedSettingsString()
+			
 			thread INIT_BATCH_FETCH()
 		}
 		else 
@@ -2563,9 +2614,9 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		if( Flowstate_IsFastInstaGib() )
 			WaitEndFrame() //all data this function needs may not be wrote by it's coroutine yet.
 		
-		if( !damageInfo ) //there's some copy function for this somewhere
+		if( !damageInfo )
 			return
-			
+		
 		if ( !IsValid( victim ) || ( !victim.IsPlayer() && !victim.IsNPC() ) || !IsValid( attacker ) )
 		{
 			#if DEVELOPER
@@ -4127,6 +4178,8 @@ SerializedData function Tracker_BuildAllPlayerMetrics( bool trigger = false )
 			{
 				foreach ( setting, value in file.PlayerData[ UID ] )
 				{
+					value = PrepareForJson( value )
+					
 					if ( !first ) 
 					{
 						json += ", ";
@@ -4205,6 +4258,7 @@ SerializedData function __t_serial( PlayerSettingsUpdate settingsArray )
 		bool firstSetting = true
 		foreach( string setting, string value in settingsData.settings )
 		{	
+			value = PrepareForJson( value )
 			if ( !tracker.check( setting, value ) )
 				continue
 
@@ -4253,7 +4307,6 @@ void function UpdateRoundStats_GlobalsCarryOver()
 		}
 	}
 }
-
 
 void function SetIgnoreSyncFlag( entity player )
 {
@@ -4864,7 +4917,7 @@ void function FinishGameStatsRound()
 			
 			LogEvent__internal
 			(
-				format( "#|Season: %d\n|| Game ended at %d\n\n %s", Tracker_GetQueryInt( "season" ), GetUnixTimestamp(), Tracker_BuildAllPlayerMetrics(true) ),
+				format( "#|Season: %d\n|| Game ended at %d\n\n %s", Tracker_GetQueryInt( "season" ), GetUnixTimestamp(), Tracker_BuildAllPlayerMetrics( true ) ),
 				file.LogE
 			)
 
