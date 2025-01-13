@@ -596,21 +596,25 @@ void function __t_reg( void functionref( string ) callbackFunc, bool bRunOnDisco
 void function __t_runship( string uid )
 {
 	foreach( callback in tracker.shipFunctions )
+		callback( uid )
+}
+
+void function __t_runshipDisconnect( string uid )
+{
+	foreach( callback in tracker.shipFunctions )
 	{
 		if( tracker.shipFunctionsWhen[ callback ] == true )
 			callback( uid )
 	}
 }
 
-
 void function ShipFunction_OnDisconnected( entity player )
 {
 	if( !IsValid_ThisFrame( player ) )
 		return //should always still be valid tbh
 		
-	tracker.RunShipFunctions( player.p.UID )
+	__t_runshipDisconnect( player.p.UID )
 }
-
 
 
 void function CodeCallback_BatchStatsLoaded()
