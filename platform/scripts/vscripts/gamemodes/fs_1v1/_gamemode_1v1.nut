@@ -1159,10 +1159,13 @@ void function mkos_Force_Rest( entity player )
 	}
 	else 
 	{
+	    //test
+		entity opponent = returnOpponentOfPlayer( player )
+		if( IsValid( opponent ) )
+			soloModePlayerToWaitingList( opponent )
+		
 		if( isPlayerInWaitingList( player ) )
-		{
 			deleteWaitingPlayer( player.p.handle )
-		}
 		
 		soloModePlayerToRestingList( player )
 		
@@ -1170,10 +1173,7 @@ void function mkos_Force_Rest( entity player )
 		{
 			player.Die( null, null, { damageSourceId = eDamageSourceId.damagedef_despawn } )
 		}
-		catch (error)
-		{
-
-		}
+		catch (error){}
 		
 		HolsterAndDisableWeapons( player )
 		//TakeAllWeapons( player )
@@ -2506,7 +2506,7 @@ entity function getRandomOpponentOfPlayer(entity player)
 
 
 
-entity function returnOpponentOfPlayer(entity player) 
+entity function returnOpponentOfPlayer( entity player ) 
 {
     entity opponent;
 
