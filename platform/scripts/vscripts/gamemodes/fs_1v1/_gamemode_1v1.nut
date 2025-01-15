@@ -5783,7 +5783,7 @@ void function Gamemode1v1_OnSpawned( entity player )
 	maki_tp_player( player, waitingRoomLocation )
 	player.UnfreezeControlsOnServer()
 	
-	if( !IsCurrentState( player, e1v1State.MATCHING ) || ( player.GetPlayerNetEnt( "FSDM_1v1_Enemy" ) == null )
+	if( !IsCurrentState( player, e1v1State.MATCHING ) || ( player.GetPlayerNetEnt( "FSDM_1v1_Enemy" ) == null ) )
 		HolsterAndDisableWeapons( player )
 }
 
