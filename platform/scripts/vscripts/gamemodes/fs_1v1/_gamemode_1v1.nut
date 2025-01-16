@@ -124,6 +124,8 @@ global struct soloGroupStruct
 	bool cycle = false //(mk): locked 1v1s can choose to cycle spawns
 	bool swap = false //(mk): locked 1v1s can have random side they spawn on
 	
+	bool isValid = false 
+	
 	float startTime
 	table <entity,groupStats> statsRecap
 }
@@ -912,13 +914,7 @@ soloGroupStruct function returnSoloGroupOfPlayer( entity player )
 
 //p
 void function addGroup( soloGroupStruct newGroup ) 
-{
-	if( !IsValid( newGroup ) )
-	{
-		sqerror("[addGroup]: Logic Flow Error: group is invalid during creation")
-		return
-	}
-	
+{	
 	mGroupMutexLock = true
 	
 		int groupHandle = GetUniqueID()
@@ -954,7 +950,10 @@ void function addGroup( soloGroupStruct newGroup )
 			}
 			
 			if( success )
+			{
+				newGroup.isValid = true
 				file.groupsInProgress[ groupHandle ] <- newGroup
+			}
 		}
 		else 
 		{	
@@ -1159,10 +1158,8 @@ void function mkos_Force_Rest( entity player )
 	}
 	else 
 	{
-	    //test
-		entity opponent = returnOpponentOfPlayer( player )
-		if( IsValid( opponent ) )
-			soloModePlayerToWaitingList( opponent )
+		soloGroupStruct group = returnSoloGroupOfPlayer( player )
+		group.IsFinished = true
 		
 		if( isPlayerInWaitingList( player ) )
 			deleteWaitingPlayer( player.p.handle )
@@ -2426,9 +2423,7 @@ bool function ClientCommand_Maki_SoloModeRest(entity player, array<string> args 
 bool function processRestRequest( entity player )
 {
 	if( !IsValid( player ) )
-	{
-		return  false
-	}
+		return false
 	
 	if ( player.p.rest_request )
 	{
@@ -2743,7 +2738,7 @@ void function soloModePlayerToRestingList(entity player)
 
 	soloGroupStruct group = returnSoloGroupOfPlayer( player )
 	
-	if( IsValid( group ) )
+	if( IsValid( group ) ) //this wont work, needs to check .isValid
 	{
 		if( isPlayerPendingChallenge( player ) || isPlayerPendingLockOpponent( player ) )
 		{
@@ -4073,7 +4068,6 @@ void function soloModeThread( LocPair waitingRoomLocation )
 						if ( processRestRequest( group.player1 ) )
 						{	
 							nowep = true
-							processRestRequest( group.player1 )
 						}
 						else 
 						{
@@ -4085,7 +4079,6 @@ void function soloModeThread( LocPair waitingRoomLocation )
 						if ( processRestRequest( group.player1 ) )
 						{
 							nowep = true
-							processRestRequest( group.player1 )
 						}
 						else 
 						{
