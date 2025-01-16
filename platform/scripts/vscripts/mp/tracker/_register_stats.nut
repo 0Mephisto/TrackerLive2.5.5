@@ -412,7 +412,7 @@ void function OnStatsShipped_Cringe( string uid )
 {
 	entity ent = GetPlayerEntityByUID( uid )
 	
-	if( ent.p.submitCringeCount > 0 )
+	if( IsValid( ent ) && ent.p.submitCringeCount > 0 )
 	{
 		string dataAppend
 		foreach( CringeReport report in ent.p.cringeDataReports )

@@ -3748,10 +3748,9 @@ void function DefinePanelCallbacks( PanelTable panels )
             enemiesArray.fastremovebyvalue( user )
             
             #if TRACKER
-				if ( bBotEnabled() && IsValid( GetMessageBotEnt() ) && IsAlive( GetMessageBotEnt() ) )
-				{
-					enemiesArray.fastremovebyvalue( GetMessageBotEnt() )
-				}
+				entity messageBot = GetMessageBotEnt()
+				if ( bBotEnabled() && IsValid( messageBot ) && IsAlive( messageBot ) )
+					enemiesArray.fastremovebyvalue( messageBot )
             #endif
 			
 			if ( enemiesArray.len() == 0 )
