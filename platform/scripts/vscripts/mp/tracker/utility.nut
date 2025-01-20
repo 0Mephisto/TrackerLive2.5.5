@@ -519,8 +519,6 @@ struct {
 				
 				
 			case "kick":	
-							
-							printt( "does this even get called?" )
 							if ( args.len() < 2 )
 							{
 								Message( player, "Failed", "kick requires name/id for 1st param of command" )
