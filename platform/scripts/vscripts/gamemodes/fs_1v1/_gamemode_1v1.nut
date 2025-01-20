@@ -2439,13 +2439,11 @@ bool function processRestRequest( entity player )
 void function expliciteRest( entity player )
 {
 	if( player.p.handle in file.soloPlayersResting )
-	{
 		return 
-	}
 	 
 	LocalMsg( player, "#FS_YouAreResting", "#FS_BASE_RestText" )
 	
-	soloModePlayerToRestingList(player)
+	soloModePlayerToRestingList( player )
 	
 	try
 	{
@@ -2453,8 +2451,8 @@ void function expliciteRest( entity player )
 	}
 	catch (error){}
 	
-	HolsterAndDisableWeapons(player)
-	thread respawnInSoloMode(player)
+	HolsterAndDisableWeapons( player )
+	thread respawnInSoloMode( player )
 	//TakeAllWeapons( player )
 	
 	player.p.lastRestUsedTime = Time()
@@ -4075,7 +4073,7 @@ void function soloModeThread( LocPair waitingRoomLocation )
 						}
 						
 						
-						if ( processRestRequest( group.player1 ) )
+						if ( processRestRequest( group.player2 ) )
 						{
 							nowep = true
 						}
