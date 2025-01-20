@@ -105,7 +105,7 @@ struct {
 	
 	//client command: show
 		bool function ClientCommand_mkos_return_data(entity player, array<string> args)
-		{
+		{		
 			if ( !CheckRate( player ) ) 
 				return false
 			
@@ -465,7 +465,6 @@ struct {
 	//cc commands
 	bool function ClientCommand_mkos_admin( entity player, array<string> args )
 	{	
-		
 		if ( !CheckRate( player ) ) 
 			return false
 		
@@ -501,7 +500,8 @@ struct {
 			param4 = args[4];
 		}
 		
-		switch(command.tolower()){  
+		switch( command.tolower() )
+		{  
 			
 			case "help":	
 			
@@ -520,6 +520,7 @@ struct {
 				
 			case "kick":	
 							
+							printt( "does this even get called?" )
 							if ( args.len() < 2 )
 							{
 								Message( player, "Failed", "kick requires name/id for 1st param of command" )
@@ -528,19 +529,21 @@ struct {
 			
 							try 
 							{		
-								entity k_player;
-								string k_playeroid;
-								string reason = param2;	
+								entity k_player
+								string k_playeroid
+								string k_playername
+								string reason = param2
 								
-								k_player = GetPlayer( param );
+								k_player = GetPlayer( param )
 								
-								if ( !IsValid(k_player) )
+								if ( !IsValid( k_player ) )
 								{
-									Message( player, "Failed", "Player: " + param + " - is invalid. ")
-									return true;
+									Message( player, "Failed", "Player: " + param + " - is invalid. " )
+									return true
 								}
 									
 								k_playeroid = k_player.GetPlatformUID()	
+								k_playername = k_player.GetPlayerName()
 								
 								if ( IsTrackerAdmin( k_playeroid ) )
 								{
@@ -551,18 +554,16 @@ struct {
 								KickPlayerById( k_playeroid, reason )
 								UpdatePlayerCounts()
 								
-								Message( player, "Kicked player", "PUID: " + param + " was kicked" )
+								Message( player, "Kicked player", "PUID: " + k_playeroid + "\nName: " + k_playername )
 								return true	
-							} 
-							catch (erraaarg)
+							}
+							catch ( erraaarg )
 							{
 								Message( player, "Error", "Invalid player or argument missing" )
 								return true
 							}
 							
-							return true;
-				
-				
+							return true;			
 			case "afk":
 					
 							try {
@@ -795,6 +796,68 @@ struct {
 							
 						return true;
 			
+			case "bansay":
+			
+						if ( args.len() < 2 )
+						{
+							Message( player, "Failed", "Command 'bansay' requires player for 1st param of command" )
+							return false
+						}
+						
+						args[0] = "ban"	
+						ResetRate( player )
+						entity target = GetPlayer( param )
+						
+						if( IsValid( target ) )
+						{
+							string targetName = target.GetPlayerName()
+							bool result = ClientCommand_mkos_admin( player, args )
+
+							if( result )
+							{
+								string msgHeader = format( "%s was BANNED for: ", targetName )
+								SendServerMessage( msgHeader + param2 )
+								foreach( s_player in GetPlayerArray() )
+									Message( s_player, msgHeader, param2, 10.0 )
+							}
+						}
+						else 
+						{
+							Message( player, "Invalid player: " + param )
+						}
+				break
+				
+			case "kicksay":
+			
+						if ( args.len() < 2 )
+						{
+							Message( player, "Failed", "Command 'kicksay' requires player for 1st param of command" )
+							return false
+						}
+						
+						args[0] = "kick"	
+						ResetRate( player )
+						entity target = GetPlayer( param )
+						
+						if( IsValid( target ) )
+						{
+							string targetName = target.GetPlayerName()
+							bool result = ClientCommand_mkos_admin( player, args )
+
+							if( result )
+							{
+								string msgHeader = format( "%s was kicked for: ", targetName )
+								SendServerMessage( msgHeader + param2 )
+								foreach( s_player in GetPlayerArray() )
+									Message( s_player, msgHeader, param2 )
+							}
+						}
+						else 
+						{
+							Message( player, "Invalid player: " + param )
+						}
+				break
+			
 			case "banid":
 			
 				#if TRACKER && HAS_TRACKER_DLL
@@ -855,9 +918,7 @@ struct {
 					#endif 
 						return true
 					
-			case "unban":
-			
-					
+			case "unban":				
 					
 						if ( args.len() < 2 )
 						{		
@@ -867,7 +928,7 @@ struct {
 						
 						try 
 						{
-							UnbanPlayer( args[1])					
+							UnbanPlayer( args[1] )					
 							Message( player, "Success", "ID: " + args[1] + " was supposedly unbanned" )				
 							return true
 								
@@ -2240,6 +2301,11 @@ bool function CheckRate( entity player, bool notify = NOTIFY_RATELIMIT_FAILED, f
 	
 	player.p.ratelimit = Time()	
 	return true
+}
+
+void function ResetRate( entity player )
+{
+	player.p.ratelimit = 0
 }
 
 //taken from sh_playlists.gnut
