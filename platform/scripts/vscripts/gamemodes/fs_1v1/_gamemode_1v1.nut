@@ -121,8 +121,8 @@ global struct soloGroupStruct
 	bool GROUP_INPUT_LOCKED = false //(mk): lock group to their input
 	bool IsFinished = false //player1 or player2 is died, set this to true and soloModeThread() will handle this
 	bool IsKeep = false //player may want to play with current opponent,so we will keep this group
-	bool cycle = false //(mk): locked 1v1s can choose to cycle spawns
-	bool swap = false //(mk): locked 1v1s can have random side they spawn on
+	bool cycle = true //(mk): locked 1v1s can choose to cycle spawns
+	bool swap = true //(mk): locked 1v1s can have random side they spawn on
 	
 	bool isValid = false 
 	
