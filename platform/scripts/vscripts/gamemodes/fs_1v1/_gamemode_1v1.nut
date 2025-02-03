@@ -80,6 +80,7 @@ const bool RELEASE_TESTED = false
 	global function DEV_acceptedchallenges
 	global function DEV_GetGamestateRef
 	global function DEV_PrintGameStates
+	global function DEV_rest
 #endif
 
 global struct soloLocStruct
@@ -281,97 +282,106 @@ const array<string> LEGEND_INDEX_ARRAY = [
 
 //DEV functions
 #if DEVELOPER
-void function DEV_printlegends()
-{
-	foreach ( char in GetAllCharacters() )
+	void function DEV_printlegends()
 	{
-		printt( ItemFlavor_GetHumanReadableRef( char ) )
-	}
-}
-	
-void function DEV_legend( entity player, int id )
-{
-	if( id < GetAllCharacters().len() )
-	{
-		ItemFlavor select_character = file.characters[ characterslist[ id ] ]
-		CharacterSelect_AssignCharacter( ToEHI( player ), select_character )
-	}
-	else
-	{
-		SetPlayerCustomModel( player, id )
-	}
-}
-
-void function DEV_acceptchal( entity player )
-{
-	array<string> args = ["accept"]
-	ClientCommand_mkos_challenge( player, args )
-}
-
-void function DEV_allchals()
-{
-	string printtext = ""
-	
-	foreach( index, structs in file.allChallenges )
-	{
-		printtext += "\n\n --- All challenges Index: " + index + " ---\n\n"
-		
-		printtext += " Struct for player: " + string( structs.player ) + "\n"
-		
-		foreach( int handle, float ztime in structs.challengers )
+		foreach ( char in GetAllCharacters() )
 		{
-			printtext += "Handle: " + handle + " Time:" + ztime
+			printt( ItemFlavor_GetHumanReadableRef( char ) )
 		}
 	}
-	
-	printt( printtext )
-}
-
-void function DEV_acceptedchallenges()
-{
-	foreach( int handle, entity player in file.acceptedChallenges )
-	{
-		printt( handle, player )
-	}
-}
-
-void function DEV_1v1Init()
-{
-	foreach( string key, int value in e1v1State )
-	{
-		file.e1v1StateNameToIntMap[ key ] <- value 
-		file.e1v1StateIDToNameMap[ value ] <- key 
-	}
-}
-
-string function DEV_GetGamestateRef( int e1v1StateEnum )
-{
-	if( e1v1StateEnum in file.e1v1StateIDToNameMap )
-		return file.e1v1StateIDToNameMap[ e1v1StateEnum ]
 		
-	return "not found"
-}
-
-int function DEV_GetGamestateID( string e1v1StateRef )
-{
-	if( e1v1StateRef in file.e1v1StateNameToIntMap )
-		return file.e1v1StateNameToIntMap[ e1v1StateRef ]
-		
-	return -1
-}
-
-void function DEV_PrintGameStates()
-{
-	string printmsg = ""
-	
-	foreach( player in GetPlayerArray() )
+	void function DEV_legend( entity player, int id )
 	{
-		int state = player.e.gamemode1v1State
-		printmsg += string( player ) + " State: " + state + " : " + DEV_GetGamestateRef( state ) + " \n"
+		if( id < GetAllCharacters().len() )
+		{
+			ItemFlavor select_character = file.characters[ characterslist[ id ] ]
+			CharacterSelect_AssignCharacter( ToEHI( player ), select_character )
+		}
+		else
+		{
+			SetPlayerCustomModel( player, id )
+		}
 	}
-	
-	printt( printmsg )
-}
+
+	void function DEV_acceptchal( entity player )
+	{
+		array<string> args = ["accept"]
+		ClientCommand_mkos_challenge( player, args )
+	}
+
+	void function DEV_allchals()
+	{
+		string printtext = ""
+		
+		foreach( index, structs in file.allChallenges )
+		{
+			printtext += "\n\n --- All challenges Index: " + index + " ---\n\n"
+			
+			printtext += " Struct for player: " + string( structs.player ) + "\n"
+			
+			foreach( int handle, float ztime in structs.challengers )
+			{
+				printtext += "Handle: " + handle + " Time:" + ztime
+			}
+		}
+		
+		printt( printtext )
+	}
+
+	void function DEV_acceptedchallenges()
+	{
+		foreach( int handle, entity player in file.acceptedChallenges )
+		{
+			printt( handle, player )
+		}
+	}
+
+	void function DEV_1v1Init()
+	{
+		foreach( string key, int value in e1v1State )
+		{
+			file.e1v1StateNameToIntMap[ key ] <- value 
+			file.e1v1StateIDToNameMap[ value ] <- key 
+		}
+	}
+
+	string function DEV_GetGamestateRef( int e1v1StateEnum )
+	{
+		if( e1v1StateEnum in file.e1v1StateIDToNameMap )
+			return file.e1v1StateIDToNameMap[ e1v1StateEnum ]
+			
+		return "not found"
+	}
+
+	int function DEV_GetGamestateID( string e1v1StateRef )
+	{
+		if( e1v1StateRef in file.e1v1StateNameToIntMap )
+			return file.e1v1StateNameToIntMap[ e1v1StateRef ]
+			
+		return -1
+	}
+
+	void function DEV_PrintGameStates()
+	{
+		string printmsg = ""
+		
+		foreach( player in GetPlayerArray() )
+		{
+			int state = player.e.gamemode1v1State
+			printmsg += string( player ) + " State: " + state + " : " + DEV_GetGamestateRef( state ) + " \n"
+		}
+		
+		printt( printmsg )
+	}
+
+	void function DEV_rest( entity player = null )
+	{
+		if( !IsValid( player ) )
+			player = p( 0 )
+			
+		expliciteRest( player )
+	}
+
 #endif
 
 void function resetChallenges()
@@ -1158,8 +1168,8 @@ void function mkos_Force_Rest( entity player )
 	}
 	else 
 	{
-		soloGroupStruct group = returnSoloGroupOfPlayer( player )
-		group.IsFinished = true
+		//soloGroupStruct group = returnSoloGroupOfPlayer( player )
+		//group.IsFinished = true
 		
 		if( isPlayerInWaitingList( player ) )
 			deleteWaitingPlayer( player.p.handle )
@@ -2442,7 +2452,6 @@ void function expliciteRest( entity player )
 		return 
 	 
 	LocalMsg( player, "#FS_YouAreResting", "#FS_BASE_RestText" )
-	
 	soloModePlayerToRestingList( player )
 	
 	try
@@ -2992,7 +3001,7 @@ void function respawnInSoloMode(entity player, int respawnSlotIndex = -1) //å¤æ
 
 	Remote_CallFunction_ByRef( player, "ForceScoreboardLoseFocus" )
 
-   	if( isPlayerInRestingList(player) )
+   	if( isPlayerInRestingList( player ) )
 	{
 		// Warning("resting respawn")
 		try
@@ -3199,11 +3208,16 @@ void function BannerImages_1v1Init()
 					
 					foreach( assetRef in playlistBannerAssets )
 					{
-						BannerAssets_GroupAppendAsset
-						(
-							"main_banner",
-							WorldDrawAsset_AssetRefToID( assetRef )
-						)
+						int refID = WorldDrawAsset_AssetRefToID( assetRef )
+						
+						if( refID != -1 )
+						{
+							BannerAssets_GroupAppendAsset
+							(
+								"main_banner",
+								refID
+							)
+						}
 					}
 				}
 			}
@@ -4004,7 +4018,7 @@ void function soloModeThread( LocPair waitingRoomLocation )
 			//}
 			//else 
 			//{	
-				if( !IsValid(group) )
+				if( !IsValid( group ) )
 				{
 					removed = true
 				}
