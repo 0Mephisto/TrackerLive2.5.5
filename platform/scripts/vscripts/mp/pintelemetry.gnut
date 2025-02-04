@@ -1599,6 +1599,12 @@ void function __DestroyStats()
 	
 	foreach( string uid, StatsTable statsTbl in Stats__GetRoundStatsTables() )
 		Stats__ResetTableByValueType( statsTbl )
+		
+	foreach( player in GetPlayerArray() )
+	{
+		int mID = InitializePlayerMetricsStructForPlayer( player )
+		__GetPlayerMetrics( mID ).ent = player
+	}
 }
 
 void function __CONTROLLED_LogInit()
