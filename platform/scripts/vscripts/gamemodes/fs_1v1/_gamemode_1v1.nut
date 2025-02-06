@@ -2431,7 +2431,10 @@ bool function processRestRequest( entity player )
 void function expliciteRest( entity player )
 {
 	if( player.p.handle in file.soloPlayersResting )
+	{
+		HolsterAndDisableWeapons( player )
 		return 
+	}
 	 
 	LocalMsg( player, "#FS_YouAreResting", "#FS_BASE_RestText" )
 	soloModePlayerToRestingList( player )
