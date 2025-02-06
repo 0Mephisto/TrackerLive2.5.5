@@ -37,7 +37,7 @@ global function g_bRestEnabled
 global function AddEntityCalllback_OnPlayerGamestateChange_1v1
 global function RemoveEntityCalllback_OnPlayerGamestateChange_1v1
 global function Gamemode1v1_GiveWeapon
-
+global function Gamemode1v1_TakeAll
 
 //shared with scenarios server script
 global function HandleGroupIsFinished
@@ -892,34 +892,16 @@ int function getAvailableRealmSlotIndex()
 //p
 soloGroupStruct function returnSoloGroupOfPlayer( entity player ) 
 {
-	soloGroupStruct group;	
+	soloGroupStruct group	
 	
-	if( !IsValid (player) )
+	if( IsValid ( player ) )
 	{	
-		#if DEVELOPER
-			sqprint("returnSoloGroupOfPlayer entity was invalid")
-		#endif
+		int handle = player.p.handle
+		if ( handle in file.playerToGroupMap ) 
+			return file.playerToGroupMap[ handle ]
+	}
 		
-		return group; 
-	}
-	
-	try
-	{
-		if ( player.p.handle in file.playerToGroupMap ) 
-		{	
-			if( IsValid( file.playerToGroupMap[ player.p.handle ] ) )
-			{
-				return file.playerToGroupMap[ player.p.handle ]
-			}
-		}
-	}
-	catch(e)
-	{
-		#if DEVELOPER
-			sqprint("returnSoloGroupOfPlayer crash " + e)
-		#endif
-	}
-	return group;
+	return group
 }
 
 //p
@@ -2510,23 +2492,21 @@ entity function getRandomOpponentOfPlayer(entity player)
 
 entity function returnOpponentOfPlayer( entity player ) 
 {
-    entity opponent;
-
-    soloGroupStruct group = returnSoloGroupOfPlayer( player );
-
-    if ( IsValid(group) && IsValid(player) ) 
+	soloGroupStruct group = returnSoloGroupOfPlayer( player )
+    entity opponent
+  
+	if ( group.isValid && IsValid( player ) ) 
 	{
-        if ( IsValid( group.player2 ) && player == group.player1 ) 
+		if( IsValid( group.player2 ) && IsValid( group.player1 ) )
 		{
-            opponent = group.player2
-        } 
-		else if ( IsValid( group.player1 ) && player == group.player2 ) 
-		{
-            opponent = group.player1
-        }
+			if ( player == group.player1 ) 
+				opponent = group.player2
+			else
+				opponent = group.player1
+		}
     }
 	
-    return opponent;
+    return opponent
 }
 
 
@@ -2650,7 +2630,10 @@ void function soloModePlayerToWaitingList( entity player )
 	if( !isScenariosMode() )
 		Remote_CallFunction_ByRef( player, "ForceScoreboardFocus" )
 
-	// Check if the player is part of any group
+	// Check opponent -- (mk):cannot do this here, it will simply result in double calls for both players.
+	// entity opponent = returnOpponentOfPlayer( player )
+	// if( IsValid( opponent ) )
+		// soloModePlayerToWaitingList( opponent )
 	
 	//检查resting list 是否有该玩家
 	deleteSoloPlayerResting( player )
@@ -2745,14 +2728,12 @@ void function soloModePlayerToRestingList(entity player)
 
 	soloGroupStruct group = returnSoloGroupOfPlayer( player )
 	
-	if( IsValid( group ) ) //this wont work, needs to check .isValid
+	if( group.isValid )
 	{
 		if( isPlayerPendingChallenge( player ) || isPlayerPendingLockOpponent( player ) )
-		{
 			endLock1v1( player, true )
-		}
 	
-		entity opponent = returnOpponentOfPlayer(player)
+		entity opponent = returnOpponentOfPlayer( player )
 
 		// if(IsValid(soloLocations[group.slotIndex].Panel)) //Panel in current Location
 			// soloLocations[group.slotIndex].Panel.SetSkin(1) //set panel to red(default color)
@@ -2766,19 +2747,17 @@ void function soloModePlayerToRestingList(entity player)
 		if( mGroupMutexLock ) 
 			throw "mGroupMutexLock 03"
 		
-		removeGroup( group ) //(mk): remove -- 销毁这个group
+		removeGroup( group ) //销毁这个group
 
-		if( IsValid( opponent ) )
-		{		//找不到对手
-			soloModePlayerToWaitingList(opponent) //将对手放回waiting list
-		}
+		if( IsValid( opponent ) )//找不到对手		
+			soloModePlayerToWaitingList( opponent ) //将对手放回waiting list
 	}
 	else 
 	{
 		endLock1v1( player, false )
 	}
 	
-	addSoloPlayerResting( player ) // ??
+	addSoloPlayerResting( player )
 	LocalMsg( player, "#FS_RESTING", "", eMsgUI.EVENT, settings.roundTime )
 	
 	Gamemode1v1_SetPlayerGamestate( player, e1v1State.RESTING )
@@ -2787,46 +2766,21 @@ void function soloModePlayerToRestingList(entity player)
 void function soloModefixDelayStart( entity player, bool bNextRoundNow = false )
 {
 	Gamemode1v1_SetPlayerGamestate( player, e1v1State.MATCH_START  )
-	
-	thread
-	( 
-		void function() : ( player )
-		{	
-			/*
-			OnThreadEnd
-			(
-				void function() : ()
-				{
-					Warning("thread for signal: OnDestroy OnRespawned ended")
-				}
-			)
-			Warning("Waiting for signal: OnDestroy OnRespawned for " + string( player ) )
-			*/
-			
-			player.EndSignal( "OnDestroy" )
-			player.WaitSignal( "OnRespawned" )
-			
-			if( !IsValid ( player ) )
-				return
-
-			TakeUltimate( player )
-			player.TakeOffhandWeapon( OFFHAND_MELEE )
-			TakeAllPassives( player )
-			TakeAllWeapons( player )
-			HolsterAndDisableWeapons( player )
-		}()
-	)
+	AddEntityCallback_OnPlayerRespawned_FireOnce( player, Gamemode1v1_TakeAll )
 	
 	if( settings.isScenariosMode || bNextRoundNow )
 		return
 	
-	if( GetGameState() >= eGameState.Playing ){ wait 7 } else { wait 12 }	
-	if( !IsValid( player ) ){ return }
+	if( GetGameState() >= eGameState.Playing )
+		wait 7
+	else
+		wait 12
 	
-	if( !isPlayerInRestingList(player) )
-	{
-		soloModePlayerToWaitingList(player)
-	}
+	if( !IsValid( player ) )
+		return
+	
+	if( !isPlayerInRestingList( player ) )
+		soloModePlayerToWaitingList( player )
 }
 
 const int MAX_REALM = 63
@@ -5878,4 +5832,13 @@ void function HandleOpponentInfo( soloGroupStruct group )
 	
 	group.player1.p.lastOpponent = group.player2
 	group.player2.p.lastOpponent = group.player1
+}
+
+void function Gamemode1v1_TakeAll( entity player )
+{
+	TakeUltimate( player )
+	player.TakeOffhandWeapon( OFFHAND_MELEE )
+	TakeAllPassives( player )
+	TakeAllWeapons( player )
+	HolsterAndDisableWeapons( player )
 }

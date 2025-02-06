@@ -2046,6 +2046,9 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 	if( Flowstate_IsFastInstaGib() )
 		FS_Instagib_PlayerSpawn( player )
 		
+	if( is1v1EnabledAndAllowed() )
+		Gamemode1v1_TakeAll( player )
+		
 	#if DEVELOPER
 		printt( "End of _HandleRespawn function" )//Cafe debugging halo mod stuff
 	#endif
