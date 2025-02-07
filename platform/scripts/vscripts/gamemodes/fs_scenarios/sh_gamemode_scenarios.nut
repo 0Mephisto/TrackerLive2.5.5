@@ -642,7 +642,7 @@ void function FS_Scenarios_UpdatePlayerScore( entity player, int event, entity v
 			//Todo(mk): remove with bot nuke
 			{				
 				string botCheck = playerName.slice( 0, 1 ) //don't .find entire string.	
-				if( botCheck == "[" ) ) //(mk): pointer comp, even faster.
+				if( botCheck == "[" ) //(mk): pointer comp, even faster.
 					continue
 			}
 				
