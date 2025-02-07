@@ -1,5 +1,5 @@
 //Flowstate 1v1 gamemode -- made by __makimakima__
-//Gamemode redesigned and maintained by @CafeFPS & mkos
+//Gamemode redesigned and maintained by @CafeFPS & Mkos
 
 global function isPlayerInRestingList
 global function Gamemode1v1_ForceRest
@@ -65,7 +65,7 @@ global function ValidateBlacklistedWeapons
 
 global typedef PanelTable table<string, entity>
 const bool TEST_WORLDDRAW = false
-const bool RELEASE_TESTED = false
+const bool RELEASE_TESTED = true
 
 //DEV 
 #if DEVELOPER
