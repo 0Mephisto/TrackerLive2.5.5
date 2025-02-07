@@ -114,17 +114,16 @@ void function CheckAfkKickThread(entity player)
 				AfkWarning( player )
 				break
 			
-			//mkos modificaiton, afk_to_rest = bAfkToRest()
 			case eAntiAfkPlayerState.AFK:
 				if ( bAfkToRest() )
-				{		
+				{
 					player.p.lastmoved = Time()
 					
 					if( g_bRestEnabled() )
-						mkos_Force_Rest( player )
+						Gamemode1v1_ForceRest( player )
 					else 
 						mAssert( false, "Playlist has afk_to_rest enabled, but mode has rest disabled internally. Try using Gamemode1v1_SetRestEnabled()" )
-						// We WANT to assert here, because this condition will always run with no effect. 
+						//(mk): We WANT to assert here, because this condition will always run with no effect. 
 				}
 				else 
 				{	

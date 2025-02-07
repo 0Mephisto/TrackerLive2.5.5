@@ -422,8 +422,6 @@ void function _CustomTDM_Init()
 			}
 		}
 	)
-	
-	AddCallback_OnPlayerKilled( Callback_OnPlayerKilled_FSCommon )
 
 	if ( FlowState_SURF() )
 	{
@@ -574,7 +572,7 @@ bool function InTrackedDoors( entity door )
 int iMonitoredDoors = 0
 void function RunDoorMonitor( entity door )
 {
-	printw( "Checking to run door monitor" )
+	//printw( "Checking to run door monitor" )
 	if( InTrackedDoors( door ) )
 	{
 		//printt( " --- SUCCESS --- : running monitor" )
@@ -983,6 +981,7 @@ LocPair function _GetAppropriateSpawnLocation( entity player )
 
 LocPair function Flowstate_GetBestSpawnPointFFA()
 {
+
 	if(file.selectedLocation.spawns.len() == 0) return _GetVotingLocation()
 	table<LocPair, float> SpawnsAndNearestEnemy = {}
 
@@ -1123,15 +1122,15 @@ void function DissolveItem( entity prop )
 	)( prop )
 }
 
-void function _OnPlayerConnected(entity player)
+void function _OnPlayerConnected( entity player )
 {
+	player.EndSignal( "OnDestroy" )
 	float startTime = Time()
-	
 	while( IsDisconnected( player ) ) //defensive break
 	{
 		WaitFrame()
 		
-		if( Time() - startTime >= 3 )
+		if( Time() - startTime >= 30 )
 		{
 			#if DEVELOPER 
 				Warning( "PLAYER DISCONNECTED BREAK LOOP" )
@@ -1139,10 +1138,7 @@ void function _OnPlayerConnected(entity player)
 			break
 		}
 	}
-
-    if ( !IsValid( player ) ) 
-		return
-
+	
 	Survival_OnClientConnected( player )
 
 	if( flowstateSettings.hackersVsPros )
@@ -1173,114 +1169,114 @@ void function _OnPlayerConnected(entity player)
 	// else
 	    // Message(player, "FLOWSTATE: DM", "Type 'commands' in console to see the available console commands. ", 10)
 
-	if(IsValid(player))
+	switch( GetGameState() )
 	{
-		switch(GetGameState())
-		{
-			case eGameState.MapVoting:
-			    {
-			    	// if(!IsAlive(player))
-			    	// {
-			    		// _HandleRespawn(player)
-			    		// ClearInvincible(player)
-			    	// }
-
-			    	// player.SetThirdPersonShoulderModeOn()
-
-			    	// if(FlowState_RandomGunsEverydie())
-			    		// UpgradeShields(player, true)
-
-			    	// // if(FlowState_Gungame())
-			    		// // KillStreakAnnouncer(player, true)
-
-			    	// player.UnforceStand()
-			    	player.FreezeControlsOnServer()
-			    }
-			break
-			case eGameState.WaitingForPlayers:
-				{
+		case eGameState.MapVoting:
+			{
+				// if(!IsAlive(player))
+				// {
 					// _HandleRespawn(player)
 					// ClearInvincible(player)
-					player.FreezeControlsOnServer()
-				}
-			break
-			case eGameState.Playing:
-				{
-					player.UnfreezeControlsOnServer()
-					
-					if( file.tdmState == eTDMState.NEXT_ROUND_NOW )
-						break
+				// }
 
+				// player.SetThirdPersonShoulderModeOn()
+
+				// if(FlowState_RandomGunsEverydie())
+					// UpgradeShields(player, true)
+
+				// // if(FlowState_Gungame())
+					// // KillStreakAnnouncer(player, true)
+
+				// player.UnforceStand()
+				player.FreezeControlsOnServer()
+			}
+		break
+		case eGameState.WaitingForPlayers:
+			{
+				// _HandleRespawn(player)
+				// ClearInvincible(player)
+				player.FreezeControlsOnServer()
+			}
+		break
+		case eGameState.Playing:
+			{
+				player.UnfreezeControlsOnServer()
+				
+				if( file.tdmState == eTDMState.NEXT_ROUND_NOW )
+					break
+
+				//_HandleRespawn( player )
+
+				array<string> InValidMaps = [
+					"mp_rr_canyonlands_staging",
+					"Skill trainer By CafeFPS",
+					"Custom map by Biscutz",
+					"White Forest By Zer0Bytes",
+					"Brightwater By Zer0bytes",
+					"Overflow",
+					"Drop-Off"
+				]
+
+				bool DropPodOnSpawn = flowstateSettings.DroppodsOnPlayerConnected
+				bool IsStaging = InValidMaps.find( GetMapName() ) != -1
+				bool IsMapValid = InValidMaps.find(file.selectedLocation.name) != -1
+				if(file.tdmState == eTDMState.NEXT_ROUND_NOW || !DropPodOnSpawn || IsStaging || IsMapValid )
 					_HandleRespawn(player)
-
-                    array<string> InValidMaps = [
-						"mp_rr_canyonlands_staging",
-						"Skill trainer By CafeFPS",
-						"Custom map by Biscutz",
-						"White Forest By Zer0Bytes",
-						"Brightwater By Zer0bytes",
-						"Overflow",
-						"Drop-Off"
-					]
-
-					bool DropPodOnSpawn = flowstateSettings.DroppodsOnPlayerConnected
-					bool IsStaging = InValidMaps.find( GetMapName() ) != -1
-					bool IsMapValid = InValidMaps.find(file.selectedLocation.name) != -1
-					if(file.tdmState == eTDMState.NEXT_ROUND_NOW || !DropPodOnSpawn || IsStaging || IsMapValid )
-						_HandleRespawn(player)
+				else
+				{
+					if(file.thisroundDroppodSpawns.len() > 0){
+						player.p.isPlayerSpawningInDroppod = true
+						thread AirDropFireteam( file.thisroundDroppodSpawns[RandomIntRangeInclusive(0, file.thisroundDroppodSpawns.len()-1)] + <0,0,15000>, <0,180,0>, "idle", 0, "droppod_fireteam", player )
+						_HandleRespawn(player, true)
+						player.SetAngles( <0,180,0> )
+					}
 					else
-					{
-						if(file.thisroundDroppodSpawns.len() > 0){
-							player.p.isPlayerSpawningInDroppod = true
-							thread AirDropFireteam( file.thisroundDroppodSpawns[RandomIntRangeInclusive(0, file.thisroundDroppodSpawns.len()-1)] + <0,0,15000>, <0,180,0>, "idle", 0, "droppod_fireteam", player )
-							_HandleRespawn(player, true)
-							player.SetAngles( <0,180,0> )
-						}
-						else
-							_HandleRespawn(player)
-					}
-
-					ClearInvincible(player)
-					if(FlowState_RandomGunsEverydie())
-						UpgradeShields(player, true)
-
-					// if(FlowState_Gungame())
-						// KillStreakAnnouncer(player, true)
-					if( flowstateSettings.hackersVsPros )
-					{
-						SetTeam(player, TEAM_IMC)
-						BecomeHacker(player)
-						
-						thread function() : (player)
-						{
-							wait 12
-							if(!IsValid(player) || player.GetTeam() != TEAM_IMC) return
-							Message(player, "HACKERS VS PROS", "You're a Hacker")
-						}()
-					}
-					
-					if( file.selectedLocation.name == "Lockout" )
-					{
-						Remote_CallFunction_Replay(player, "FS_ForceAdjustSunFlareParticleOnClient", 0 )
-					} else if( file.selectedLocation.name == "The Pit" )
-					{
-						Remote_CallFunction_Replay(player, "FS_ForceAdjustSunFlareParticleOnClient", 1 )
-					} else if( file.selectedLocation.name == "Narrows" )
-					{
-						Remote_CallFunction_Replay(player, "FS_ForceAdjustSunFlareParticleOnClient", 2 )
-					}
-					
-					if( MapName() == eMaps.mp_flowstate )
-					{
-						//Remote_CallFunction_NonReplay(player, "Minimap_DisableDraw_Internal")
-						Remote_CallFunction_ByRef( player, "Minimap_DisableDraw_Internal" )
-					}
-					
+						_HandleRespawn(player)
 				}
-				break
-			default:
-				break
-		}
+
+
+				ClearInvincible(player)
+				if(FlowState_RandomGunsEverydie())
+					UpgradeShields(player, true)
+
+				// if(FlowState_Gungame())
+					// KillStreakAnnouncer(player, true)
+				if( flowstateSettings.hackersVsPros )
+				{
+					SetTeam(player, TEAM_IMC)
+					BecomeHacker(player)
+					
+					thread function() : (player)
+					{
+						wait 12
+						if( player.GetTeam() != TEAM_IMC ) 
+							return
+							
+						Message(player, "HACKERS VS PROS", "You're a Hacker")
+					}()
+				}
+				
+				if( file.selectedLocation.name == "Lockout" )
+				{
+					Remote_CallFunction_Replay(player, "FS_ForceAdjustSunFlareParticleOnClient", 0 )
+				} else if( file.selectedLocation.name == "The Pit" )
+				{
+					Remote_CallFunction_Replay(player, "FS_ForceAdjustSunFlareParticleOnClient", 1 )
+				} else if( file.selectedLocation.name == "Narrows" )
+				{
+					Remote_CallFunction_Replay(player, "FS_ForceAdjustSunFlareParticleOnClient", 2 )
+				}
+				
+				if( MapName() == eMaps.mp_flowstate )
+				{
+					//Remote_CallFunction_NonReplay(player, "Minimap_DisableDraw_Internal")
+					Remote_CallFunction_ByRef( player, "Minimap_DisableDraw_Internal" )
+				}
+				
+			}
+			break
+		default:
+			break
 	}
 
 	if( !flowstateSettings.hackersVsPros )
@@ -1339,7 +1335,7 @@ void function __HighPingCheck(entity player)
 	{
 		player.FreezeControlsOnServer()
 		player.ForceStand()
-		HolsterAndDisableWeapons( player )
+		HolsterAndDisableWeapons_Raw( player )
 		
 		//TODO: LocalVarMsg()
 		//Message(player, "FLOWSTATE KICK", "Admin has enabled a ping limit: " + FlowState_MaxPingAllowed() + " ms. \n Your ping is too high: " + (int(player.GetLatency()* 1000) - 40) + " ms.", 3)
@@ -1684,14 +1680,15 @@ void function PlayerKillStreakAnnounce( entity attacker, string doubleKill, stri
 
 void function CheckForObservedTarget(entity player)
 {
-	OnThreadEnd(
+	OnThreadEnd
+	(
 		function() : ( player )
 		{
 			if( !IsValid(player) ) return
 			
-			if(IsValid(player.p.lastFrameObservedTarget))
+			if( IsValid( player.p.lastFrameObservedTarget ) )
 			{
-				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", max(0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1) )
+				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", maxint(0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1) )
 				player.p.lastFrameObservedTarget = null
 			}
 			
@@ -1715,7 +1712,7 @@ void function CheckForObservedTarget(entity player)
 		if(observerTarget != player.p.lastFrameObservedTarget)
 		{
 			if(IsValid(player.p.lastFrameObservedTarget))
-				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", max(0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1) )
+				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", maxint(0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1) )
 			
 			if(IsValid(observerTarget))
 				observerTarget.SetPlayerNetInt( "playerObservedCount", observerTarget.GetPlayerNetInt( "playerObservedCount" ) + 1 )
@@ -1831,7 +1828,7 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 		}
 		
 		if( !isScenariosMode() && !g_is1v1GameType() )
-			PlayerRestoreHP(player, 100, Equipment_GetDefaultShieldHP())
+			PlayerRestoreHP( player, 100, Equipment_GetDefaultShieldHP() )
 
 		try{
 			player.TakeNormalWeaponByIndexNow( WEAPON_INVENTORY_SLOT_PRIMARY_2 )
@@ -2045,7 +2042,7 @@ void function _HandleRespawn( entity player, bool isDroppodSpawn = false )
 
 	if( Flowstate_IsFastInstaGib() )
 		FS_Instagib_PlayerSpawn( player )
-		
+	
 	if( is1v1EnabledAndAllowed() )
 		Gamemode1v1_TakeAll( player )
 		
@@ -4933,6 +4930,10 @@ void function Message( entity player, string text, string subText = "", float du
 	if ( !player.p.isConnected ) 
 		return
 	
+	#if DEVELOPER 
+		printt( "Message()", player, text, subText )
+	#endif 
+	
 	if ( ( text.len() + subText.len() ) >= 599 ) 
 		return
 
@@ -5584,13 +5585,13 @@ bool function ClientCommand_GiveWeapon(entity player, array<string> args)
 		return true
 	}
 
-	if(args.len() < 2) return true
+	if( args.len() < 2 ) return true
 
 	if( is1v1EnabledAndAllowed() && isPlayerInRestingList( player ) )
-	{	
+	{
 		bRestFlag = true
-		//Message( player, "NOT ALLOWED IN RESTING MODE" )
-		//return false
+		// Message( player, "NOT ALLOWED IN RESTING MODE" )
+		// return false
 	}
 	
 	if( is1v1EnabledAndAllowed() && isPlayerInWaitingList( player ) )
@@ -5748,8 +5749,8 @@ bool function ClientCommand_GiveWeapon(entity player, array<string> args)
 		
 		LocalMsg( player, "#FS_WEAPONSAVED", subToken, uiType, 5, sWepName )
 			
-		if (bRestFlag)
-			HolsterAndDisableWeapons( player )
+		if ( bRestFlag ) //(mk): defensive
+			HolsterAndDisableWeapons_Raw( player )
 
     return true
 }
@@ -7803,51 +7804,15 @@ void function FS_Hack_CreateBulletsCollisionVolume( vector origin, float large =
 		file.playerSpawnedProps.append( wall )
 	}
 
-	Warning("Spawned collision volume with walls centered for custom map")
+	#if DEVELOPER
+		Warning("Spawned collision volume with walls centered for custom map")
+	#endif
 	
 	//Install a oob trigger in all maps
 	file.playerSpawnedProps.append( AddOutOfBoundsTriggerWithParams( origin + <0,0,800>, large, 2000 ) )
 	
 	//Kill trigger
 	file.playerSpawnedProps.append( AddDeathTriggerWithParams( origin - <0,0,500>, large ) )
-}
-
-const int MAX_GAMESTAT_NET_INT = 510
-bool s_bVictimDeathErrorReported = false
-string s_victimErrorUIDString = ""
-
-void function Callback_OnPlayerKilled_FSCommon( entity victim, entity attacker, var damageInfo )
-{
-	if( IsValid( attacker ) && attacker.IsPlayer() )
-	{ 	
-		int attackerKills = attacker.GetPlayerNetInt( "kills" )	
-		if( attackerKills >= MAX_GAMESTAT_NET_INT )
-		{
-			#if TRACKER 
-				LogError( "player '" + attacker.GetPlatformUID() + "' reached " + attackerKills + " [kills] in a match." )
-			#endif 
-			
-			attacker.SetPlayerNetInt( "kills", minint( attackerKills, MAX_GAMESTAT_NET_INT ) )
-			EndRound()
-		}
-	}
-		
-	if( !IsValid( victim ) || !victim.IsPlayer() )
-		return 
-		
-	int victimKills = victim.GetPlayerNetInt( "deaths" )
-	if( victimKills >= MAX_GAMESTAT_NET_INT )
-	{
-		#if TRACKER 
-			if ( !s_bVictimDeathErrorReported && victim.GetPlatformUID() != s_victimErrorUIDString )
-			{
-				LogError( "player '" + victim.GetPlatformUID() + "' reached " + victimKills + " [deaths] in a match." )
-				s_bVictimDeathErrorReported = true
-			}		
-		#endif
-		
-		victim.SetPlayerNetInt( "deaths", minint( victimKills, MAX_GAMESTAT_NET_INT ) )
-	}
 }
 
 void function EndRound()

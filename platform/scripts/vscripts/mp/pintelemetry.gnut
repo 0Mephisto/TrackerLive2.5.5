@@ -2149,12 +2149,12 @@ void function Init_NewGame()
 		EndSignal( player, "OnDisconnected", "OnDestroy" )
 		
 		while( IsValid( player ) )
-		{	
+		{
 			player.FreezeControlsOnServer()
 			player.ForceStand()
-			mkos_Force_Rest( player )
+			Gamemode1v1_ForceRest( player )
 			wait 0.5
-		}	
+		}
 	}
 	
 	void function Alert_Player_Access( entity player )
@@ -2162,7 +2162,7 @@ void function Init_NewGame()
 		EndSignal( player, "OnDisconnected", "OnDestroy" )
 		CommandsEnabled( player, false )
 		
-		mkos_Force_Rest( player )
+		Gamemode1v1_ForceRest( player )
 		
 		if( IsValid( player ) && !GetServerVar( "batch_fetch_complete" ) )
 			WaitSignal( svGlobal.levelEnt, "BatchFetchComplete" )
@@ -2180,7 +2180,7 @@ void function Init_NewGame()
 		
 		if ( IsValid( player ) && access_status >= RESTRICTED_ACCESS_STATUS_REQUIRED )//Todo: Revisit for more modularity from a single defined source and remove CONST adjustments
 		{	
-			mkos_Force_Rest( player )
+			Gamemode1v1_ForceRest( player )
 			Message( player, "Welcome " + player.GetPlayerName(),  Player_Access_Message( player, access_status ), 30 )
 			CommandsEnabled( player, true )
 		}
@@ -3706,7 +3706,7 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 				return
 				
 			Remote_CallFunction_ByRef( player, "ForceScoreboardLoseFocus" )
-			mkos_Force_Rest( player )
+			Gamemode1v1_ForceRest( player )
 		}
 		
 		if( !player.p.isConnected )
@@ -5025,7 +5025,7 @@ void function PIN_AddPlayer( entity player )
 			)
 			
 			player.p.InDeathRecap = true
-			mkos_Force_Rest( file.entityBotEnt )
+			Gamemode1v1_ForceRest( file.entityBotEnt )
 			file.entityBotEnt.p.start_in_rest_setting = true;
 			file.entityBotEnt.SetDamageNotifications( false )
 			file.entityBotEnt.SetDeathNotifications( false )
@@ -5072,7 +5072,7 @@ void function PIN_AddPlayer( entity player )
 			#if DEVELOPER
 				sqprint("Player sent to rest from rest setting")
 			#endif
-			mkos_Force_Rest( player )
+			Gamemode1v1_ForceRest( player )
 		}
 	}
 	
@@ -5214,7 +5214,7 @@ bool function CheckPlayerStartInRest( entity player )
 	if ( file.gamemode_type_1v1 )
 	{
 		if ( player.p.start_in_rest_setting )
-			mkos_Force_Rest( player )
+			Gamemode1v1_ForceRest( player )
 	
 		if ( isPlayerInRestingList( player ) )
 			return true 
