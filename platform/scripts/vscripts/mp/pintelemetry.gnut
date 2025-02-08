@@ -226,7 +226,7 @@ global function UpdateStartInRestSetting //move
 global function NULL_PDATA
 global function Gamemode1v1_PlayerDataCallbacks //TODO: this probably shouldn't be here, but a bit of logic needs sorted into it's gamemode file (will do soonTM)
 
-const DEBUGDMG = true
+const DEBUGDMG = false
 
 #if DEVELOPER
 	global function DEV_GetPlayerMetricsIndexByUID
@@ -3656,34 +3656,57 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	//this blows
+	//this blows  ( The reason for this madness is to prevent rejoining to bypass attempt throttle )
 	bool function ClientCommand_mkos_ea_verify( entity player, array<string> args )
-	{	
+	{
+		if( !IsValid( player ) || !player.p.isConnected )
+			return false
+			
+		if( GetGameState() != eGameState.Playing )
+		{
+			LocalMsg( player, "#FS_GameNotPlaying" )
+			player.p.eaVerifyProcessing = false
+			return true
+		}
+		
+		if( player.p.eaVerifyProcessing == true )
+			return true
+		else
+			player.p.eaVerifyProcessing = true
+			
+		if ( file.gamemode_type_1v1 && Time() < player.p.lastRestUsedTime + 3 ) 
+		{
+			LocalEventMsg( player, "#FS_RESTCOOLDOWN" )
+			player.p.eaVerifyProcessing = false
+			return true
+		}
+			
 		string ea_acc = player.GetPlayerName()
 		string OID = player.GetPlatformUID()
 	
-		int index = -1;
-		for (int i = 0; i < playerVerifyCounts.len(); i++) 
+		int index = -1
+		for ( int i = 0; i < playerVerifyCounts.len(); i++ ) 
 		{
-			if (playerVerifyCounts[i].playerID == ea_acc) 
+			if ( playerVerifyCounts[ i ].playerID == ea_acc ) 
 			{
-				index = i;
-				break;
+				index = i
+				break
 			}
 		}
 
-		if (index == -1) 
+		if ( index == -1 ) 
 		{
 			PlayerVerifyCount newEntry
 			newEntry.playerID = ea_acc
-			newEntry.verifyCount = 0;
+			newEntry.verifyCount = 0
 			playerVerifyCounts.append( newEntry )
 			index = playerVerifyCounts.len() - 1
 		}
 
-		if ( playerVerifyCounts[index].verifyCount >= 3 ) 
+		if ( playerVerifyCounts[ index ].verifyCount >= 3 ) 
 		{
-			Message(player, "Too many attempts. Try again later.")
+			Message( player, "Too many attempts. Try again later." )
+			player.p.eaVerifyProcessing = false
 			return false
 		}
 	
@@ -3691,30 +3714,23 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 		return true
 	}
 	
-	
 	void function PlayerEA_Verify( entity player, array<string> args, int index, string ea_acc, string OID ) 
 	{
-		if ( !IsValid( player ) ) // || !player.p.isConnected)
+		if ( !IsValid( player ) || !player.p.isConnected )
 				return
 		
 		if ( file.gamemode_type_1v1 ) 
 		{
-			if( !player.p.isConnected )
-				waitthread WaitSignalOrTimeout( player, 5, "OnConnected", "OnDisconnected", "OnDestroy" )
-			
-			if( !IsValid( player ) || !player.p.isConnected )
-				return
-				
 			Remote_CallFunction_ByRef( player, "ForceScoreboardLoseFocus" )
 			Gamemode1v1_ForceRest( player )
 		}
-		
-		if( !player.p.isConnected )
+		else if( !player.p.isConnected )
 			return
 
 		if ( args.len() < 1 )
 		{
 			Message( player, "Token from R5R.DEV is required." )
+			player.p.eaVerifyProcessing = false
 			return
 		}
 
@@ -3722,14 +3738,11 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 
 		string token = args[ 0 ]
 		EA_Verify__internal( token, OID, ea_acc )
-		
-		return
 	}
 	
 	void function CodeCallback_VerifyEaAccount( string oid, int token )
 	{	
-		entity player = GetPlayerEntityByUID( oid )
-		
+		entity player = GetPlayerEntityByUID( oid )	
 		if( !IsValid( player ) )
 			return
 					
@@ -3737,41 +3750,43 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 		{
 			case 10:
 				Message( player, "Failed: Expired Token", "Please request a new one" )
-				return
+				break
 
 			case 2:
 				Message( player, "Invalid token", "Usage: ea_verify   yourtoken" )
-				return
+				break
 
 			case 4:
 				Message( player, "Failed", "EA Account already linked." )
-				return
+				break
 
 			case 1:
 				Message( player, "SUCCESS", "Your account was successfully verified on R5R.DEV" )
-				return
+				break
 
 			case 5:
 				Message( player, "Failed: ", "Database error on success" )
-				return
+				break
 
 			case 3:
 				Message( player, "Failed: ", "DB error" )
-				return
+				break
 
 			case 6:
 				Message( player, "Failed: ", "Missing Data" )
-				return
+				break
 
 			case 8:
 				Message( player, "Failed: ", "CURL Error." )
-				return
+				break
 
 			case 0:
 			default:
 				Message( player, "Failed", "Could not verify EA Account." )
-				return
-		}	
+				break
+		}
+		
+		player.p.eaVerifyProcessing = false
 	}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

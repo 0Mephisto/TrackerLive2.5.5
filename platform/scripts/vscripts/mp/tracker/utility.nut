@@ -1092,9 +1092,9 @@ struct {
 						
 			case "map":
 					
-						if( GetPlaylistMaps( GetMode(param2) ).contains( GetMap(param) ) )
+						if( GetPlaylistMaps( GetMode( param2 ) ).contains( GetMap( param ) ) )
 						{
-							GameRules_ChangeMap( GetMap(param) , GetMode(param2) )
+							GameRules_ChangeMap( GetMap( param ), GetMode( param2 ) )
 						}
 						else 
 						{	
@@ -1779,13 +1779,6 @@ struct {
 				//CreateServer("","","mp_rr_desertlands_64k_x_64k","fs_survival_solos", 0)
 				break
 				
-			case "testimg":
-			
-				#if DEVELOPER 
-					
-				#endif
-				break
-				
 			case "movement_recorder_playback_rate":
 			
 				if( IsNumeric( param ) )
@@ -1810,13 +1803,55 @@ struct {
 				BannerAssets_Restart()
 				break
 				
+			case "allow_legend_select":
+			
+				if( empty( param ) )
+				{
+					Message( player, "Command 'allow_legend_select' requires paramater of [true|1] / [false|0]" )
+					return true
+				}
+					
+				bool result = false
+				switch( param )
+				{
+					case "1":
+					case "true":
+						Gamemode1v1_SetAllowLegendSelect( true )
+						result = true
+						break
+						
+					case "0":
+					case "false":
+						Gamemode1v1_SetAllowLegendSelect( true )
+						result = false
+						break
+						
+					default:
+						Message( player, "Invalid paramater" )
+						return true
+				}
+				
+				Message( player, "Legend Select was set to " + ( result ? "ENABLED" : "DISABLED" ) )
+				break
+				
+			case "set_legend":
+			
+				if( empty( param ) || !IsNumeric( param ) )
+				{
+					Message( player, "Command 'set_legend' requires numeric paramater for legend index" )
+					return true
+				}
+				
+				int index = param.tointeger()
+				Gamemode1v1_SetAllPlayersLegend( index )
+				break
+			
 			default:	
 						Message( player, "Usage", "cc #command #param1 #param2 #..." )
 						return true;
 		}
-		
-		
-		return true;
+			
+		return true
 	}
 
 void function RunUpdateMsg()
@@ -2223,9 +2258,7 @@ string function GetMap( string str ) //todo:deprecate
 	foreach ( map in list_maps ) 
 	{
 		if ( map[0] == str || map[1] == str ) 
-		{
-			return map[1];
-		}
+			return map[1]
 	}
 	
 	return GetMapName()

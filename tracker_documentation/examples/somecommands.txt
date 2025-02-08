@@ -325,8 +325,49 @@ cc start_banners
 
 	restart all registered banner groups 
 	
+cc restricted [0/1]
 
+	enables/disables restricted server
 
+cc sayto [playername/oid] [title] [message] [duration]
+
+	sends a message to a specific player with a specified duration ( defaults to 3 seconds if omitted )
+
+cc bansay [playername/oid] [reason]
+
+	bans a player and then sends a server message announcing the ban
+
+cc kicksay [playername/oid] [reason]
+
+	kicks a player and then sends a server message announcing the kick
+
+cc pos [spawnname]
+
+	(DEV MODE) prints current position coordinates with a name
+
+cc thumbsup
+
+	sends a “thumbsup” from server message bot
+
+cc print_chat_effects
+
+	(DEV MODE) prints all available chat effects
+
+cc msgeffect [effect_name]
+
+	sends a specific chat effect based on a lookup of the provided effect name
+
+cc gamerules
+
+  	(not done)
+
+cc allow_legend_select [ true/1 | false/0 ]
+
+	enables or disables legend selection for the gamemode
+
+cc set_legend [legend_index]
+
+	changes all players’ legend based on the specified index
 
 
 # Updates to ingame cc system

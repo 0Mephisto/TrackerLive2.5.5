@@ -3888,7 +3888,7 @@ void function HolsterAndDisableWeapons_Raw( entity player )
 //(mk): This ignores the stack system for multiple conditions, performing the action immediately.
 {
 	player.HolsterWeapon()
-	DisableOffhandWeapons( player )
+	player.Server_TurnOffhandWeaponsDisabledOn()
 }
 
 
@@ -3928,7 +3928,7 @@ void function DeployAndEnableWeapons_Raw( entity player )
 //(mk): This ignores the stack system for multiple conditions, performing the action immediately.
 {
 	player.DeployWeapon()
-	EnableOffhandWeapons( player )
+	player.Server_TurnOffhandWeaponsDisabledOff()
 }
 
 void function DeployAndEnableWeaponsWithSlowDeploy( entity player, float time )

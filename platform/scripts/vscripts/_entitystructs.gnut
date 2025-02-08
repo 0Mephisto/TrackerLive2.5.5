@@ -845,6 +845,7 @@ global struct ServerPlayerStruct
 	int unmuteTime = -1
 	int msg
 	bool wonctf = false
+	bool eaVerifyProcessing = false
 	
 	//for adding specific spawn behavior on a player basis.
 	array<void functionref(entity)> playerSpawnedCallbacks
