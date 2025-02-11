@@ -152,12 +152,12 @@ WeaponData
     "ammo_clip_size"   								"36"    // Damage - When Used by Players
 	"damage_type" 									"bullet"
 
-    "damage_near_value"   							"15"        //"17"
-    "damage_far_value"								"15"        //"17"
-    "damage_very_far_value"							"15"        //"17"
-    "damage_near_value_titanarmor"					"15"        //"17"
-    "damage_far_value_titanarmor" 					"15"        //"17"
-    "damage_very_far_value_titanarmor" 				"15"        //"17"
+    "damage_near_value"   							"16"        //"17"
+    "damage_far_value"								"16"        //"17"
+    "damage_very_far_value"							"16"        //"17"
+    "damage_near_value_titanarmor"					"16"        //"17"
+    "damage_far_value_titanarmor" 					"16"        //"17"
+    "damage_very_far_value_titanarmor" 				"16"        //"17"
     "damage_rodeo" 									"200"
 
     "damage_near_distance"							"1500"
@@ -166,7 +166,7 @@ WeaponData
 
     "red_crosshair_range" 							"0"
 
-    "damage_headshot_scale"							"1.50"
+	"damage_headshot_scale" "1.250000"
 	"damage_leg_scale"                              "0.85"
 
 	"critical_hit"									"1"

@@ -86,16 +86,18 @@ WeaponData
 
     "uses_ammo_pool"								"1"
 	// Damage - When Used by Players
-                      
-    "damage_near_value"   							"13"
-    "damage_far_value"								"13"
-    "damage_very_far_value"							"13"
-    "damage_near_value_titanarmor"					"13"
-    "damage_far_value_titanarmor" 					"13"
-    "damage_very_far_value_titanarmor" 				"13"
-    "damage_rodeo" 									"100"
-
-	"damage_leg_scale"                              "0.75"
+          
+	"damage_flags" "DF_BULLET | DF_KNOCK_BACK"
+	"damage_near_value" "14"
+	"damage_far_value" "14"
+	"damage_very_far_value" "14"
+	"damage_near_value_titanarmor" "14"
+	"damage_far_value_titanarmor" "14"
+	"damage_very_far_value_titanarmor" "14"
+	"damage_rodeo" "100"
+	"damage_leg_scale" "0.750000"
+	"headshot_distance" "11828"
+	"damage_headshot_scale" "1.300000"
 
 	// Behavior
 	"deployfirst_time"								"1.1"

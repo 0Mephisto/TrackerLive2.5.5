@@ -71,22 +71,20 @@
 
 	// Damage
 	//
-	"damage_near_value"                        "140"
-	"damage_far_value"                         "140"
-	"damage_very_far_value"                    "140"
-	"damage_near_value_titanarmor"             "140"
-	"damage_far_value_titanarmor"              "140"
-	"damage_very_far_value_titanarmor"         "140"
-
-	"damage_rodeo"                             "900"
-
-	// Damage - Behavior
-	"damage_flags"                             "DF_SNIPER | DF_BULLET | DF_KNOCK_BACK | DF_DISMEMBERMENT"
-	"pass_through_depth"                       "64"
-	"pass_through_damage_preserved_scale"      "0.8"
-
-    "damage_headshot_scale"                    "2.0"
-	"damage_leg_scale"                         "0.8"
+	"damage_near_value" "150"
+	"damage_far_value" "150"
+	"damage_very_far_value" "150"
+	"damage_near_value_titanarmor" "150"
+	"damage_far_value_titanarmor" "150"
+	"damage_very_far_value_titanarmor" "150"
+	"damage_rodeo" "900"
+	"damage_flags" "DF_SNIPER | DF_BULLET | DF_KNOCK_BACK | DF_GIB"
+	
+	
+	"pass_through_depth" "64"
+	"pass_through_damage_preserved_scale" "0.800000"
+	"damage_headshot_scale" "1.400000"
+	"damage_leg_scale" "0.800000"
 
 
 	// Viewmodel

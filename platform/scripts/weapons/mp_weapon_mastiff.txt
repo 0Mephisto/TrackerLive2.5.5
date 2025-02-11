@@ -67,7 +67,7 @@ WeaponData
 	"projectile_flight_sound"                       "weapon_mastiff_projectile_crackle"
 
                        
-	"blast_pattern"									"mastiff_2"
+	"blast_pattern"									"mastiff"
 	"blast_pattern_default_scale"        			"1.1"
     "blast_pattern_ads_scale"                       "0.6" //0.55 // for players, scales pattern when ADS
 	"blast_pattern_zero_distance"        			"512.0"
@@ -114,17 +114,16 @@ WeaponData
 	"low_ammo_fraction" 							"0.25"
 
 	// Damage - When used by players
-    "damage_near_distance"							"450"
-    "damage_far_distance" 							"850"
-                       
-    "damage_near_value"   							"11"
-    "damage_far_value"								"11"
-    "damage_near_value_titanarmor"					"11"
-    "damage_far_value_titanarmor" 					"11"
-
-    "damage_headshot_scale"							"1.25"
-     
-                                  
+	"damage_near_distance" "450"
+	"damage_far_distance" "850"
+	"damage_near_value" "16"
+	"damage_far_value" "16"
+	"damage_near_value_titanarmor" "16"
+	"damage_far_value_titanarmor" "16"
+	"damage_headshot_scale" "1.000000"
+    "damage_leg_scale" "1.000000"
+	"damage_shield_scale" "1"
+    "damage_flags" "DF_SHOTGUN | DF_BULLET | DF_KNOCK_BACK"                      
                                
                                         
                                         
@@ -211,7 +210,7 @@ WeaponData
 
 	// View Kick
                        
-    "viewkick_spring"                               "mastiff_2"
+    "viewkick_spring"                               "mastiff"
      
                                     
       

@@ -39,7 +39,7 @@ WeaponData
 	"projectile_gravity_scale"						"0.5"
 	"projectile_lifetime" 							"4.0"
 
-	"damage_flags"									"DF_BULLET | DF_GIB | DF_DISMEMBERMENT"
+	"damage_flags"									"DF_BULLET | DF_GIB"
 
 	"OnWeaponActivate"								"OnWeaponActivate_weapon_lstar"
 	"OnWeaponPrimaryAttack"							"OnWeaponPrimaryAttack_weapon_lstar"
@@ -380,20 +380,21 @@ WeaponData
 
     "aimassist_adspull_weaponclass"					"none"
 
-    "damage_near_value"   							"17"
-    "damage_far_value"								"17"
-    "damage_very_far_value"							"17"
-    "damage_near_value_titanarmor"					"17"
-    "damage_far_value_titanarmor" 					"17"
-    "damage_very_far_value_titanarmor" 				"17"
+"damage_near_value" "20"
+	"damage_far_value" "20"
+	"damage_very_far_value" "20"
+	"damage_near_value_titanarmor" "20"
+	"damage_far_value_titanarmor" "20"
+	"damage_very_far_value_titanarmor" "20"
+	"damage_rodeo" "100"
+	"explosion_damage" "30"
+	"damage_near_distance" "1500"
+	"damage_far_distance" "2500"
+	"damage_very_far_distance" "5000"
+	"damage_leg_scale" "0.850000"
 
-    "damage_rodeo" 									"100"
-    "explosion_damage"								"30"
-    "damage_near_distance"							"1500"
-    "damage_far_distance" 							"2500"
-    "damage_very_far_distance"						"5000"
-    "damage_headshot_scale"							"1.50"
-    "damage_leg_scale"	    						"0.85"
+
+
     "critical_hit_damage_scale"						"1.5"
 
     "red_crosshair_range" 							"0"
@@ -455,6 +456,7 @@ WeaponData
 	"trigger_snipercam"   							"0"
 	"allow_headshots" 								"1"
 	"headshot_distance" 							"2250"
+	"damage_headshot_scale" "1.250000"
 	"primary_fire_does_not_block_sprint"			"0"
 	"ads_move_speed_scale"							"0.4"
 

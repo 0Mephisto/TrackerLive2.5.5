@@ -62,7 +62,8 @@ WeaponData
 	"fx_muzzle_flash2_world"						""
 	"fx_muzzle_flash2_attach"						"muzzle_flash_1"
 
-
+	"damage_leg_scale" "0.800000"
+	"damage_headshot_scale" "1.200000"
 	// Sound
 
 
@@ -111,13 +112,13 @@ WeaponData
 	"low_ammo_fraction" 							"0.3"
 
     // Damage - When Used by Players
-    "damage_near_value"   							"16"
-    "damage_far_value"								"16"
-    "damage_very_far_value"							"16"
-    "damage_near_value_titanarmor"					"16"
-    "damage_far_value_titanarmor" 					"16"
-    "damage_very_far_value_titanarmor" 				"16"
-    "damage_rodeo" 									"90"
+	"damage_near_value" "18"
+	"damage_far_value" "18"
+	"damage_very_far_value" "18"
+	"damage_near_value_titanarmor" "18"
+	"damage_far_value_titanarmor" "18"
+	"damage_very_far_value_titanarmor" "18"
+	"damage_rodeo" "90"
 
 	"damage_unshielded_scale"              			"1.0"
 

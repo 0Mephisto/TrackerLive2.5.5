@@ -51,7 +51,7 @@ WeaponData
 
 	"projectiles_per_shot"							"3"
 
-	"blast_pattern"									"shotgun_pistol_2"
+	"blast_pattern"									"shotgun_pistol"
 	"blast_pattern_zero_distance"        			"512.0"
 	"blast_pattern_default_scale"        			"1.65"
 	"blast_pattern_ads_scale"                       "0.5"  // for players, scales pattern when ADS
@@ -75,7 +75,7 @@ WeaponData
 	"fx_muzzle_flash_world"							""
 	"fx_muzzle_flash_attach"						"muzzle_flash"
 
-	"damage_flags"									"DF_SHOTGUN | DF_BULLET | DF_KNOCK_BACK | DF_DISMEMBERMENT"
+	"damage_flags" "DF_SHOTGUN | DF_BULLET | DF_KNOCK_BACK"
 	"damage_type" 									"bullet"
 	"damage_headshot_scale"							"1.25"
 
@@ -94,13 +94,16 @@ WeaponData
     "uses_ammo_pool"                                "1"
 
 	// Damage - When Used by Players
-    "damage_near_value"   							"15"
-    "damage_far_value"								"15"
-    "damage_very_far_value"							"15"
-    "damage_near_value_titanarmor"					"15"
-    "damage_far_value_titanarmor" 					"15"
-    "damage_very_far_value_titanarmor" 				"15"
-	"damage_leg_scale"                              "1.0"
+	"damage_near_value" "16"
+	"damage_far_value" "16"
+	"damage_very_far_value" "16"
+	"damage_near_value_titanarmor" "16"
+	"damage_far_value_titanarmor" "16"
+	"damage_very_far_value_titanarmor" "16"
+	"damage_leg_scale" "1.000000"
+	"damage_near_distance" "500"
+	"damage_far_distance" "1000"
+	"damage_very_far_distance" "1500"
 
     "damage_near_distance"							"500"
     "damage_far_distance" 							"1000"
@@ -151,11 +154,11 @@ WeaponData
 	"bolt_hitsize_growfinal_size"					"7.5"
 
 	// Behavior
-	"fire_rate"   									"2.2"
+	"fire_rate" "2.660000"
 	"reload_time" 									"2.1"
 	"reload_time_late1" 							"1.05"
 	"reloadempty_time"								"2.6"
-	"reloadempty_time_late1"						"1.5"
+	"reloadempty_time_late1" "2.200000"
 
 	// Spread
     // for projectile shotguns, set this to the size of the spread pattern at the intended engagement range

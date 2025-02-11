@@ -103,13 +103,13 @@ WeaponData
     "uses_ammo_pool"								"1"
 
    // Damage - When Used by Players
-    "damage_near_value"   							"20"
-    "damage_far_value"								"20"
-    "damage_very_far_value"							"20"
-    "damage_near_value_titanarmor"					"20"
-    "damage_far_value_titanarmor" 					"20"
-    "damage_very_far_value_titanarmor" 				"20"
-    "damage_rodeo" 									"170"
+	"damage_near_value" "20"
+	"damage_far_value" "20"
+	"damage_very_far_value" "20"
+	"damage_near_value_titanarmor" "20"
+	"damage_far_value_titanarmor" "20"
+	"damage_very_far_value_titanarmor" "20"
+	"damage_rodeo" "170"
 
     // Damage - When Used by NPCs
     "npc_damage_near_value"   						"13"
@@ -158,6 +158,11 @@ WeaponData
 	"empty_reload_only"   							"0"
 	"trigger_snipercam"   							"0"
 	"allow_headshots" 								"1"
+
+	"damage_flags" "DF_BULLET | DF_KNOCK_BACK"
+	"headshot_distance" "11828"
+	"damage_headshot_scale" "1.300000"
+	"damage_leg_scale" "0.750000"
 
 	// View Kick
 	"viewkick_pattern"                              "hemlok_2"

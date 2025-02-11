@@ -135,8 +135,7 @@ WeaponData
 
     // Ammo
 
-                         
-                                                                                  
+                                                                
                                   
                                    
                                            
@@ -154,14 +153,16 @@ WeaponData
     "low_ammo_fraction" 							"0.3"
 
     // Damage - When Used by Players
-    "damage_near_value"   							"9"
-    "damage_far_value"								"9"
-
-    "damage_near_value_titanarmor"					"9"
-    "damage_far_value_titanarmor" 					"9"
-    "damage_rodeo" 									"550"
-    "damage_near_distance"							"100"
-    "damage_far_distance" 							"750"
+	"damage_near_value" "12"
+	"damage_far_value" "12"
+	"damage_near_value_titanarmor" "12"
+	"damage_far_value_titanarmor" "12"
+	"damage_rodeo" "550"
+	"damage_near_distance" "100"
+	"damage_far_distance" "750"
+	                 
+    "damage_leg_scale" "1.000000"
+	"damage_shield_scale" "1"     
 
 	// NPC
 	"proficiency_poor_spreadscale"					"7.0"
@@ -204,8 +205,8 @@ WeaponData
 
 	"deployfirst_time"								"1.4"
 
-	"headshot_distance" 							"3940" // 100m
-	"damage_headshot_scale"							"1.25"  // "1.5"
+	"headshot_distance" "3940"
+	"damage_headshot_scale" "1.000000"
 
 	"sprint_fractional_anims"						"0"
 

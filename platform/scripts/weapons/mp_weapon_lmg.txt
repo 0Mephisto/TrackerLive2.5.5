@@ -27,7 +27,7 @@ WeaponData
 	"minimap_reveal_distance"						"32000"
 	"leveled_pickup"								"1"
 
-	"damage_flags"									"DF_BULLET | DF_INSTANT | DF_DISMEMBERMENT"
+	"damage_flags" "DF_BULLET"
 
 	// Menu
 	"menu_category"                                 "lmg"
@@ -138,8 +138,19 @@ WeaponData
 
     "damage_shield_scale"                           "1"
 
-    "damage_headshot_scale"							"1.50"
-	"damage_leg_scale"                              "0.85"
+	"damage_near_value" "21"
+	"damage_far_value" "21"
+	"damage_very_far_value" "21"
+	"damage_near_value_titanarmor" "21"
+	"damage_far_value_titanarmor" "21"
+	"damage_very_far_value_titanarmor" "21"
+	"damage_rodeo" "200"
+	"damage_near_distance" "1500"
+	"damage_far_distance" "2500"
+	"damage_very_far_distance" "4000"
+
+	"damage_headshot_scale" "1.250000"
+	"damage_leg_scale" "0.850000"
 	"ammo_clip_size"   								"35"
     "ammo_default_total"							"0"
     "ammo_stockpile_max"							"84"

@@ -156,6 +156,7 @@ WeaponData
 	"damage_very_far_distance"						"11828"  // 300m
 	//"sustained_laser_damage_scale"				"0.2" // Used for the damage scale of singe
 
+	"damage_leg_scale" "0.700000"
 	//"damage_headshot_scale"                         "1.75"
 	//"damage_leg_scale"                              "0.9"
 	//"damage_shield_scale"                           "1"

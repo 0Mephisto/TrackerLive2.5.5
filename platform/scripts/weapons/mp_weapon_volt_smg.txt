@@ -26,9 +26,9 @@ WeaponData
 	"minimap_reveal_distance"						"32000"
 	"leveled_pickup"								"1"
 
-	//"damage_flags"									"DF_BULLET | DF_DISMEMBERMENT"
+	"damage_flags" "DF_BULLET"
 
-	"damage_leg_scale"                              "0.8"
+	"damage_leg_scale" "0.800000"
 
 	"critical_hit"									"1"
 	"critical_hit_damage_scale"						"2"
@@ -148,23 +148,19 @@ WeaponData
         "ammo_no_remove_from_stockpile"					"0"
         "uses_ammo_pool"								"1"
 
-        "damage_near_value"   					        "15"
-        "damage_far_value"						        "15"
-        "damage_very_far_value"					        "15"
-        "damage_near_value_titanarmor"			        "15"
-        "damage_far_value_titanarmor" 			        "15"
-        "damage_very_far_value_titanarmor" 		        "15"
+"damage_near_value" "16"
+	"damage_far_value" "16"
+	"damage_very_far_value" "16"
+	"damage_near_value_titanarmor" "16"
+	"damage_far_value_titanarmor" "16"
+	"damage_very_far_value_titanarmor" "16"
+	"red_crosshair_range" "0"
+	"ammo_min_to_fire" "1"
+	"damage_near_distance" "800"
+	"damage_far_distance" "1500"
+	"damage_very_far_distance" "3500"
 
        
-
-	"red_crosshair_range" 							"0"
-
-    "ammo_min_to_fire"								"1"
-
-    "damage_near_distance"							"800"
-    "damage_far_distance" 							"1500"
-    "damage_very_far_distance"						"3500"
-
     // View Drift
 
     "viewdrift_ads_stand_scale_pitch" 				"0.7"

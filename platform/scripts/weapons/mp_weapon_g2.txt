@@ -31,7 +31,7 @@
 
 	// Behavior - Firing
 	//
-	"fire_rate"                                "4.2"
+	"fire_rate" "3.900000"
 	"impulse_force"                            "750"
 	"is_semi_auto"				                "1"
 
@@ -49,30 +49,23 @@
 
 	// Damage
 	//
-	"damage_flags"                             "DF_BULLET | DF_KNOCK_BACK | DF_DISMEMBERMENT"
+	"damage_flags"                             "DF_BULLET | DF_KNOCK_BACK"
+
+	"damage_rodeo" "220"
+	"damage_near_value" "35"
+	"damage_far_value" "35"
+	"damage_very_far_value" "35"
+	"damage_near_value_titanarmor" "35"
+	"damage_far_value_titanarmor" "35"
+	"damage_very_far_value_titanarmor" "35"
+	"damage_leg_scale" "0.750000"
 
 	"damage_rodeo"                             "220"
-
+	"headshot_distance" "17716"
+	"damage_headshot_scale" "1.600000"
 	// Damage - Titan
                 
-                                                
-                                                
-                                                
-                                                
-                                                   
-                                                   
-                                                  
-     
-	"damage_near_value"                        "33"
-	"damage_far_value"                         "33"
-	"damage_very_far_value"                    "33"
-	"damage_near_value_titanarmor"             "33"
-	"damage_far_value_titanarmor"              "33"
-	"damage_very_far_value_titanarmor"         "33"
-      
-
-    "damage_leg_scale"                         "0.75"
-
+                                             
 
 	// Viewmodel
 	"viewmodel_offset_ads"                     "0 -1.6 0"
