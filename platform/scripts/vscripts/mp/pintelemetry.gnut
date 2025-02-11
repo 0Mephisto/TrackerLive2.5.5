@@ -5,7 +5,6 @@ global function PIN_PlanePath
 global function PIN_SetGameStartTime
 global function PIN_GameStartedForPlayer
 global function PIN_CircleLocation
-global function GameSummary_GetPlayerData
 global function PIN_RoundEnd
 global function PIN_GameEnd
 global function PIN_AddPlayer
@@ -29,6 +28,8 @@ global function PIN_OnPlayerHealed
 global function PIN_PlayerLandedOnGround
 global function PIN_PlayerJumpedFromPlane
 global function PIN_Training
+
+global function GameSummary_GetPlayerData
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +107,7 @@ global function Tracker_SetStartLog
 		int weaponSource
 		array<int> weaponOrder
 		
-		int attackerHandle //encoded ehandle
+		int attackerHandle
 		int victimHandle
 		
 		int hitCount
@@ -198,8 +199,6 @@ global function Tracker_IsRestrictedServer
 global function Tracker_SetRestrictedServer
 global function Tracker_SetForceUpdatePlayerData
 global function Tracker_GetStartUnixTime
-
-//Todo: port to indev 
 global function Tracker_SetShouldShip
 
 global function Tracker_ReturnSuperglides
@@ -276,7 +275,7 @@ global struct DamageEvent
     int weaponSource
 	array<int> weaponOrder
 	
-	int attackerHandle //encoded ehandle
+	int attackerHandle
 	int victimHandle
 	
     int hitCount
@@ -285,7 +284,7 @@ global struct DamageEvent
 	int headshots
 	float actionTimestamp
 	int lastWeaponSource
-	float lastHitTimestamp = 0
+	float lastHitTimestamp
 	
 	bool isNew
 	float shotIdentifier
@@ -380,9 +379,9 @@ array< PlayerVerifyCount > playerVerifyCounts
 array< DeleteEvents > DeleteEventTaskList // queue for managing event deletion //TODO rework
 
 #if SERVER   
-bool function Logging_ShipStats() 				{ return GetCurrentPlaylistVarBool("logging_shipstats", false) }
-bool function Enable_CC_Administration() 		{ return GetCurrentPlaylistVarBool("cc_administration", false) }
-bool function Ea_Verify_Server()				{ return ( GetConVarInt( "sv_onlineAuthEnable" ) == 1 && GetCurrentPlaylistVarBool( "ea_verify_server", false ) ) }
+	bool function Logging_ShipStats() 				{ return GetCurrentPlaylistVarBool("logging_shipstats", false) }
+	bool function Enable_CC_Administration() 		{ return GetCurrentPlaylistVarBool("cc_administration", false) }
+	bool function Ea_Verify_Server()				{ return ( GetConVarInt( "sv_onlineAuthEnable" ) == 1 && GetCurrentPlaylistVarBool( "ea_verify_server", false ) ) }
 #endif
 
 struct PlayerData 
@@ -467,9 +466,10 @@ struct //Todo: move appropriate to tracker.var
 	bool bIntervalThreadRunning
 	int iLoopMessagesTime
 	
-	string sBotName
-	int iBotID
-	entity entityBotEnt
+	string sBotName //todo: move to code
+	string messageBotPrefix //todo: move to code
+	int iBotID //todo: move to code
+	entity entityBotEnt //todo: move to code
 	
 	table < int, array<string> > MessageEvents
 	array<string> Messages_EventStart
@@ -1796,7 +1796,11 @@ void function Tracker_SettingsInit()
 	file.stats_discord_webhook_matches_enabled		= GetCurrentPlaylistVarBool( "stats_discord_webhook_matches_enabled", false )
 	
 	if( file.bChatbotEnabled )
-		file.sBotName = SQ_GetSetting__internal( "settings.CHATBOT_PREFIX" )
+	{
+		string botPrefix = SQ_GetSetting__internal( "settings.CHATBOT_PREFIX" )
+		file.sBotName = botPrefix
+		file.messageBotPrefix = "["+ botPrefix +"]" //This is not set here.
+	}
 	
 	//init stat bools (must be before string inits) todo: cleanup
 	file.global_stats 						= GetCurrentPlaylistVarBool( "use_global_stats", false )
@@ -1843,6 +1847,40 @@ void function PlayerConnectedCallback( entity player )
 	player.p.handle = playerHandle
 	//sqprint(format("Added handle as: %d,  saved state: %d", playerHandle, player.p.handle ))
 	
+	//HACK! Todo: Remove
+	if( file.bChatbotEnabled && playerName == file.messageBotPrefix )
+	{
+		file.entityBotEnt = player 
+		
+		if( IsValid( file.entityBotEnt ) )
+		{
+			AddEntityCallback_OnPlayerRespawned( file.entityBotEnt, CheckForMessageBot )
+			
+			AddCallback_OnPlayerChangedTeam
+			(
+				void function( entity ent, int old, int new )
+				{
+					if( IsBotEnt( ent ) )
+					{
+						if( new != 119 )
+							SetTeam( ent, 119 )
+					}
+				}
+			)
+			
+			player.p.InDeathRecap = true
+			Gamemode1v1_ForceRest( file.entityBotEnt )
+			file.entityBotEnt.p.start_in_rest_setting = true
+			file.entityBotEnt.SetDamageNotifications( false )
+			file.entityBotEnt.SetDeathNotifications( false )
+			thread MessageIntervalThread()
+		}
+		else 
+		{
+			sqerror( "ServerBot Entity Error" )
+		}
+	}//	
+	
 	string uid = player.GetPlatformUID()
 	int mID = InitializePlayerMetricsStructForPlayer( player )
 	__GetPlayerMetrics( mID ).ent = player
@@ -1860,11 +1898,11 @@ void function PlayerConnectedCallback( entity player )
 	
 	file.HandleToPlayerData[ playerHandle ] <- pdata
 	
-    thread PIN_AddPlayer( player )
-	
 	string checkName = pdata.playerName.slice( 0, 1 )
-	if( checkName.find( "[" ) != -1 ) //hack, make sure player is not message bot entity (TODO: REMOVE)
+	if( checkName == "[" ) //hack, make sure player is not message bot entity (TODO: REMOVE)
 		return
+		
+    thread PIN_AddPlayer( player )
 	
 	if( file.superglideDetect )
 	{
@@ -3660,7 +3698,10 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 	bool function ClientCommand_mkos_ea_verify( entity player, array<string> args )
 	{
 		if( !IsValid( player ) || !player.p.isConnected )
-			return false
+			return true
+			
+		if( !CheckRate( player ) )
+			return true
 			
 		if( GetGameState() != eGameState.Playing )
 		{
@@ -3702,19 +3743,25 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 			playerVerifyCounts.append( newEntry )
 			index = playerVerifyCounts.len() - 1
 		}
-
-		if ( playerVerifyCounts[ index ].verifyCount >= 3 ) 
+		else if ( playerVerifyCounts[ index ].verifyCount >= 3 ) 
 		{
 			Message( player, "Too many attempts. Try again later." )
 			player.p.eaVerifyProcessing = false
-			return false
+			return true
+		}
+		
+		if ( args.len() < 1 || empty( args[ 0 ] ) )
+		{
+			Message( player, "Token from R5R.DEV is required." )
+			player.p.eaVerifyProcessing = false
+			return true
 		}
 	
-		thread PlayerEA_Verify( player, args, index, ea_acc, OID )	
+		thread __PlayerEA_Verify( player, args, index, ea_acc, OID )	
 		return true
 	}
 	
-	void function PlayerEA_Verify( entity player, array<string> args, int index, string ea_acc, string OID ) 
+	void function __PlayerEA_Verify( entity player, array<string> args, int index, string ea_acc, string OID ) 
 	{
 		if ( !IsValid( player ) || !player.p.isConnected )
 				return
@@ -3724,18 +3771,9 @@ DamageEvent function Tracker_GetCurrentEventByPlayerHandle_expensive( int player
 			Remote_CallFunction_ByRef( player, "ForceScoreboardLoseFocus" )
 			Gamemode1v1_ForceRest( player )
 		}
-		else if( !player.p.isConnected )
-			return
 
-		if ( args.len() < 1 )
-		{
-			Message( player, "Token from R5R.DEV is required." )
-			player.p.eaVerifyProcessing = false
-			return
-		}
-
-		playerVerifyCounts[ index ].verifyCount += 1
-
+		playerVerifyCounts[ index ].verifyCount++
+		
 		string token = args[ 0 ]
 		EA_Verify__internal( token, OID, ea_acc )
 	}
@@ -5018,42 +5056,6 @@ void function PIN_AddPlayer( entity player )
 	if( !IsValid( player ) ) 
 		return
 	
-	//HACK! Todo: Remove 
-	if( file.bChatbotEnabled && player.GetPlayerName() == "["+ file.sBotName +"]" )
-	{
-		file.entityBotEnt = player 
-		
-		if( IsValid( file.entityBotEnt ) )
-		{
-			AddEntityCallback_OnPlayerRespawned( file.entityBotEnt, CheckForMessageBot )
-			
-			AddCallback_OnPlayerChangedTeam
-			(
-				void function( entity ent, int old, int new )
-				{
-					if( IsBotEnt( ent ) )
-					{
-						if( new != 119 )
-							SetTeam( ent, 119 )
-					}
-				}
-			)
-			
-			player.p.InDeathRecap = true
-			Gamemode1v1_ForceRest( file.entityBotEnt )
-			file.entityBotEnt.p.start_in_rest_setting = true;
-			file.entityBotEnt.SetDamageNotifications( false )
-			file.entityBotEnt.SetDeathNotifications( false )
-			thread MessageIntervalThread()
-		}
-		else 
-		{
-			sqerror( "ServerBot Entity Error" )
-		}
-		
-		return
-	}//
-	
 	if( !file.global_stats || !bLog() )
 		SetStatsReadyFlag( player, true )
 	
@@ -5781,10 +5783,10 @@ void function FireRemoteMotd( entity player )
 			{
 				//run ui script for motd
 				Remote_CallFunction_UI( player, "UI_Callback_MOTD" )
-					wait 5
-					
-				if( IsValid( player ) && player.p.isConnected )
-					LocalMsg( player, "#FS_WELCOME", "", eMsgUI.QUICK, 10, player.p.name )//Extra welcome message //todo: move to client
+				
+				// wait 5				
+				// if( IsValid( player ) && player.p.isConnected )
+					// LocalMsg( player, "#FS_WELCOME", "", eMsgUI.QUICK, 10, player.p.name )//Extra welcome message //todo: move to client
 			}
 		}
 	)()
@@ -5803,10 +5805,10 @@ void function ShowPlayerLocalMOTD( entity player )
 				{
 					//run ui script for motd
 					SendMotdToPlayer( player, file.localFlowstate_MOTD ) //LineBreak( file.localFlowstate_MOTD, 80 )
-						wait 5
-						
-					if( IsValid( player ) )
-						LocalMsg( player, "#FS_WELCOME", "", eMsgUI.QUICK, 10, player.p.name )//Extra welcome message
+					
+					// wait 5	
+					// if( IsValid( player ) )
+						// LocalMsg( player, "#FS_WELCOME", "", eMsgUI.QUICK, 10, player.p.name )//Extra welcome message
 				}
 		}
 	)()
@@ -5834,9 +5836,12 @@ void function PIN_PlayerOutResource( entity player, string ref ){}
 
 void function PlayerConnectedCallback( entity player )
 {	
-	if ( !IsValid( player ) ){ return }
+	if ( !IsValid( player ) )
+		return
 	
-	player.p.name = player.GetPlayerName()
+	string playerName = player.GetPlayerName()
+	
+	player.p.name = playerName
 	player.p.UID = player.GetPlatformUID()
 	player.p.handle = player.GetEncodedEHandle()
 }
