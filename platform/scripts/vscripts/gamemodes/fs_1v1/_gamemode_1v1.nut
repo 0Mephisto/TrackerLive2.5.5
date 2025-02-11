@@ -244,6 +244,7 @@ struct
 	bool player_collision_enabled
 	bool player_rest_collision_enabled
 	bool allow_legend_select
+	bool enableHelmets
 	
 } settings
 
@@ -586,6 +587,7 @@ void function INIT_PlaylistSettings()
 	settings.player_collision_enabled				= GetCurrentPlaylistVarBool( "player_collision_enabled", true )
 	settings.player_rest_collision_enabled			= GetCurrentPlaylistVarBool( "player_rest_collision_enabled", false )
 	settings.allow_legend_select					= GetCurrentPlaylistVarBool( "allow_legend_select", false )
+	settings.enableHelmets							= GetCurrentPlaylistVarBool( "enable_helmets", false )
 }
 
 bool function isCustomWeaponAllowed()
@@ -2806,18 +2808,20 @@ void function PlayerRestoreHP_1v1( entity player, float health, float shields )
 		return
 
 	player.SetHealth( health )
-	Inventory_SetPlayerEquipment(player, "helmet_pickup_lv3", "helmet")
 	
-	if( shields == 0 ) 
-		return
-	else if(shields <= 50)
-		Inventory_SetPlayerEquipment( player, "armor_pickup_lv1", "armor" )
-	else if(shields <= 75)
-		Inventory_SetPlayerEquipment( player, "armor_pickup_lv2", "armor" )
-	else if(shields <= 100)
-		Inventory_SetPlayerEquipment( player, "armor_pickup_lv3", "armor" )
-	else if(shields <= 125 )
-		Inventory_SetPlayerEquipment( player, "armor_pickup_lv5", "armor" )
+	if( settings.enableHelmets )
+		Inventory_SetPlayerEquipment(player, "helmet_pickup_lv3", "helmet")
+		
+		if( shields == 0 )
+			return
+		else if(shields <= 50)
+			Inventory_SetPlayerEquipment( player, "armor_pickup_lv1", "armor" )
+		else if(shields <= 75)
+			Inventory_SetPlayerEquipment( player, "armor_pickup_lv2", "armor" )
+		else if(shields <= 100)
+			Inventory_SetPlayerEquipment( player, "armor_pickup_lv3", "armor" )
+		else if(shields <= 125 )
+			Inventory_SetPlayerEquipment( player, "armor_pickup_lv5", "armor" )
 
 	player.SetShieldHealth( shields )
 }
