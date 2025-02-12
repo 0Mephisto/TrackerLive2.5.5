@@ -174,6 +174,8 @@ struct
 	
 	array< SpawnData > gamemodeSpawns = []
 	
+	array< string > metagameWeaponsPrimary
+	array< string > metagameWeaponsSecondary
 } file
 
 struct
@@ -287,7 +289,7 @@ void function InitializePlaylistSettings()
 	flowstateSettings.allow_cfgs 							= GetCurrentPlaylistVarBool( "flowstate_allow_cfgs", false )					
 	flowstateSettings.give_random_custom_models_toall		= GetCurrentPlaylistVarBool( "flowstate_give_random_custom_models_toall", false )
 	flowstateSettings.show_short_champion_screen			= GetCurrentPlaylistVarBool( "show_short_champion_screen", true )
-	flowstateSettings.bRealisticMode						= GetCurrentPlaylistVarBool( "realistic_mode", false )
+	flowstateSettings.bRealisticMode 						= Playlist() == ePlaylists.fs_realistic_ttv
 }
 
 bool function Flowstate_IsRealisticMode()
@@ -336,6 +338,12 @@ void function _CustomTDM_Init()
 	RegisterSignal( "EndScriptedPropsThread" )
 	RegisterSignal( "FS_WaitForBlackScreen" )
 	RegisterSignal( "FS_ForceDestroyAllLifts" )
+	
+	if( FlowState_RandomGunsMetagame() )
+	{
+		PrimaryWeaponMetagame_Init()
+		SecondaryWeaponMetagame_Init()
+	}
 	
 	flowstateSettings.bIs1v1ModeEnabled = bIs1v1Mode()
 	if( flowstateSettings.enable_global_chat )
@@ -1316,6 +1324,8 @@ void function _OnPlayerConnected( entity player )
 		)
 	}
 	
+	//AddEntityCallback_OnPlayerRespawned_FireOnce( player, Gamemode1v1_TakeAll )
+	
 	if( is1v1EnabledAndAllowed() )
 		thread soloModefixDelayStart( player )
 }
@@ -1678,21 +1688,22 @@ void function PlayerKillStreakAnnounce( entity attacker, string doubleKill, stri
 	attacker.p.lastDownedEnemyTime = Time()
 }
 
-void function CheckForObservedTarget(entity player)
+void function CheckForObservedTarget( entity player )
 {
 	OnThreadEnd
 	(
 		function() : ( player )
 		{
-			if( !IsValid(player) ) return
+			if( !IsValid( player ) ) 
+				return
 			
 			if( IsValid( player.p.lastFrameObservedTarget ) )
 			{
-				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", maxint(0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1) )
+				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", maxint( 0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1 ) )
 				player.p.lastFrameObservedTarget = null
 			}
 			
-			if(!IsValid( player.GetObserverTarget() ) && GetGameState() == eGameState.Playing )
+			if( !IsValid( player.GetObserverTarget() ) && GetGameState() == eGameState.Playing )
 			{
 				player.p.isSpectating = false
 				player.SetPlayerNetInt( "spectatorTargetCount", 0 )
@@ -1705,18 +1716,21 @@ void function CheckForObservedTarget(entity player)
 		}
 	)
 	
+	player.EndSignal( "OnDestroy", "OnDisconnected" )
+	
 	entity observerTarget
-	while(IsValid(player) && player.IsObserver() && IsValid( player.GetObserverTarget() ) )
+	while( player.IsObserver() && IsValid( player.GetObserverTarget() ) )
 	{		
 		observerTarget = player.GetObserverTarget()
-		if(observerTarget != player.p.lastFrameObservedTarget)
+		if( observerTarget != player.p.lastFrameObservedTarget )
 		{
-			if(IsValid(player.p.lastFrameObservedTarget))
-				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", maxint(0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1) )
+			if( IsValid( player.p.lastFrameObservedTarget ) )
+				player.p.lastFrameObservedTarget.SetPlayerNetInt( "playerObservedCount", maxint( 0, player.p.lastFrameObservedTarget.GetPlayerNetInt( "playerObservedCount" ) - 1 ) )
 			
-			if(IsValid(observerTarget))
+			if( IsValid( observerTarget ) )
 				observerTarget.SetPlayerNetInt( "playerObservedCount", observerTarget.GetPlayerNetInt( "playerObservedCount" ) + 1 )
 		}
+		
 		player.p.lastFrameObservedTarget = player.GetObserverTarget()
 		WaitFrame()
 	}
@@ -2495,57 +2509,83 @@ void function RealisticMode_OnSpawned( entity player )
 	)()
 }
 
+void function PrimaryWeaponMetagame_Init()
+{
+	array<string> Weapons
+	switch( Playlist() )
+	{
+		case ePlaylists.fs_realistic_ttv:
+			Weapons = 
+			[
+				"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l2",
+				"mp_weapon_r97 optic_cq_threat bullets_mag_l2 stock_tactical_l2",
+				"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l3",
+				"mp_weapon_vinson stock_tactical_l2 highcal_mag_l3"
+			]
+		break 
+		
+		default:
+			Weapons = 
+			[
+				"mp_weapon_rspn101 barrel_stabilizer_l2 optic_cq_hcog_bruiser stock_tactical_l2 bullets_mag_l2",
+				"mp_weapon_vinson optic_cq_hcog_bruiser stock_tactical_l2 highcal_mag_l2",
+				"mp_weapon_energy_ar optic_cq_hcog_bruiser energy_mag_l2 stock_tactical_l2 hopup_turbocharger",
+				"mp_weapon_hemlok barrel_stabilizer_l2 optic_cq_hcog_bruiser stock_tactical_l2 highcal_mag_l2"
+			]
+	}
+
+	Weapons = ValidateBlacklistedWeapons( Weapons )
+	
+	if( Weapons.len() == 0 )
+		mAssert( false, "No valid weapons remain in secondary list. If this is intentional, comment this assert" )
+		
+	file.metagameWeaponsPrimary = Weapons
+}
+
 void function GiveRandomPrimaryWeaponMetagame(entity player)
 {
-	int slot = WEAPON_INVENTORY_SLOT_PRIMARY_0
-	//todo: init outside func
+	__GiveWeapon( player, clone file.metagameWeaponsPrimary, WEAPON_INVENTORY_SLOT_PRIMARY_0, RandomIntRangeInclusive( 0, file.metagameWeaponsPrimary.len() - 1 )  )
+}
 
-    array<string> Weapons = 
-	[
-		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l2",
-		"mp_weapon_r97 optic_cq_threat bullets_mag_l2 stock_tactical_l2",
-		"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l3",
-		"mp_weapon_vinson stock_tactical_l2 highcal_mag_l3",
-	]
-
-	//R5RDEV-1
-	// foreach(weapon in Weapons)
-	// {
-		// array<string> weaponfullstring = split( weapon , " ")
-		// string weaponName = weaponfullstring[0]
-		// if(file.blacklistedWeapons.find(weaponName) != -1)
-				// Weapons.removebyvalue(weapon)
-	// }
+void function SecondaryWeaponMetagame_Init()
+{
+	array<string> Weapons
+	
+	switch( Playlist() )
+	{
+		case ePlaylists.fs_realistic_ttv:
+			Weapons = 
+			[
+				"mp_weapon_energy_shotgun optic_cq_threat shotgun_bolt_l2 stock_tactical_l2",
+				"mp_weapon_mastiff shotgun_bolt_l2 stock_tactical_l2",
+				"mp_weapon_shotgun shotgun_bolt_l2 stock_tactical_l2"
+			]
+		break 
+		
+		default:
+			Weapons = 
+			[
+				"mp_weapon_volt_smg laser_sight_l2 optic_cq_hcog_classic energy_mag_l2 stock_tactical_l2",
+				"mp_weapon_r97 laser_sight_l2 optic_cq_hcog_classic stock_tactical_l2 bullets_mag_l2",
+				"mp_weapon_pdw optic_cq_hcog_classic stock_tactical_l2 highcal_mag_l2",
+				"mp_weapon_wingman optic_cq_hcog_classic sniper_mag_l2 hopup_headshot_dmg",
+				"mp_weapon_mastiff shotgun_bolt_l2 stock_tactical_l2",
+				"mp_weapon_energy_shotgun shotgun_bolt_l2 optic_cq_hcog_classic stock_tactical_l2",
+				"mp_weapon_shotgun shotgun_bolt_l2 optic_cq_hcog_classic stock_tactical_l2"
+			]
+	}
 	
 	Weapons = ValidateBlacklistedWeapons( Weapons )
-
-	__GiveWeapon( player, Weapons, slot, RandomIntRange( 0, Weapons.len() ) )
+	
+	if( Weapons.len() == 0 )
+		mAssert( false, "No valid weapons remain in secondary list. If this is intentional, comment this assert" )
+	
+	file.metagameWeaponsSecondary = Weapons	
 }
 
 void function GiveRandomSecondaryWeaponMetagame(entity player)
 {
-	int slot = WEAPON_INVENTORY_SLOT_PRIMARY_1
-
-	//todo: init outside func..
-    array<string> Weapons =	
-	[
-		"mp_weapon_energy_shotgun optic_cq_threat shotgun_bolt_l2 stock_tactical_l2",
-		"mp_weapon_mastiff shotgun_bolt_l2 stock_tactical_l2",
-		"mp_weapon_shotgun shotgun_bolt_l2 stock_tactical_l2"
-	]
-
-	//R5RDEV-1
-	// foreach(weapon in Weapons)
-	// {
-		// array<string> weaponfullstring = split( weapon , " ")
-		// string weaponName = weaponfullstring[0]
-		// if(file.blacklistedWeapons.find(weaponName) != -1)
-				// Weapons.removebyvalue(weapon)
-	// }
-	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
-
-	__GiveWeapon( player, Weapons, slot, RandomIntRange( 0, Weapons.len() ) )
+	__GiveWeapon( player, clone file.metagameWeaponsSecondary, WEAPON_INVENTORY_SLOT_PRIMARY_1, RandomIntRangeInclusive( 0, file.metagameWeaponsSecondary.len() - 1 ) )
 }
 
 void function GiveRandomPrimaryWeapon(entity player)
@@ -5938,9 +5978,10 @@ string function modChecker( string weaponMods )
 //Auto-load TDM Saved Weapons on Respawn
 void function LoadCustomWeapon(entity player)
 {
-	if ( !IsValid( player )) return
+	if ( !IsValid( player ) ) 
+		return
 	
-	if (player.GetPlayerName() in weaponlist)
+	if ( player.GetPlayerName() in weaponlist )
 	{
 		// TakeAllWeapons(player)
 		array<string> weapons =  split(weaponlist[player.GetPlayerName()] , ";")
