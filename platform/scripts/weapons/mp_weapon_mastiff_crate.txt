@@ -17,7 +17,7 @@
 	"bolt_hitsize_grow2_size" "2"
 	"bolt_hitsize_growfinal_lerptime" "0.180000"
 	"bolt_hitsize_growfinal_size" "2"
-	"viewkick_spring" "mastiff"
+	"viewkick_spring" "mastiff_2"
 	"blast_pattern" "mastiff_2"
 	"projectiles_per_shot" "8"
 	"printname" "#WPN_MASTIFF"

@@ -54,7 +54,7 @@
 	"charge_effect_3p" "P_mflash_nrg_shot_charge"
 	"charge_effect_attachment" "muzzle_flash"
 	"projectiles_per_shot" "11"
-	"blast_pattern" "energy_shotgun"
+	"blast_pattern" "energy_shotgun_2"
 	"blast_pattern_zero_distance" "512.000000"
 	"blast_pattern_default_scale" "1.800000"
 	"blast_pattern_npc_scale" "1.800000"

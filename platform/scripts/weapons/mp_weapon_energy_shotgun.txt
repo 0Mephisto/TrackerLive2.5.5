@@ -42,8 +42,12 @@ WeaponData
 	"OnWeaponChargeBegin"					        "EnergyChargeWeapon_OnWeaponChargeBegin"
 	"OnWeaponChargeEnd"					            "OnWeaponChargeEnd_weapon_energy_shotgun"
 
-	"charge_time" 									"1.25"
-	"charge_levels"									"4"
+	
+	// "charge_time" 									"1.25" //reg 
+	// "charge_levels"									"4"	  //reg 
+	"charge_time" "0.000000" //crate
+	"charge_levels" "0" //crate
+	
 	"charge_level_base"								"1"
 
 	"charge_cooldown_time"							"0.75"
@@ -56,7 +60,8 @@ WeaponData
 	"ui22_enable"									"1"
 	"ui23_enable"									"1"
 	"ui24_enable"									"1"
-	"ui25_enable"									"1"
+	//"ui25_enable"									"1" //reg 
+	"ui25_enable" "0" //crate
 			
 	"charge_is_triggered_by_ADS"					"1"
 	"charge_fraction_scales_anim_rate"				"1"
@@ -66,15 +71,19 @@ WeaponData
 	"charge_effect_3p"								"P_mflash_nrg_shot_charge"
 	"charge_effect_attachment"						"muzzle_flash"
 
-	"projectiles_per_shot" 							"11"
+	//"projectiles_per_shot" 							"11" //reg 
+	"projectiles_per_shot" "9" //crate
 
-	"blast_pattern"									"energy_shotgun"
+	"blast_pattern"									"energy_shotgun_2"
 	"blast_pattern_zero_distance"        			"512.0"
                          
                                                  
      
-	"blast_pattern_default_scale"        			"1.7"
+	//"blast_pattern_default_scale"        			"1.7" //reg
+	"blast_pattern_default_scale" "1.5" //crate
       
+	  
+	  
 	"blast_pattern_npc_scale"            			"1.8"  // scales on top of the default
 
 	// Effects
@@ -86,6 +95,8 @@ WeaponData
 	"vortex_absorb_sound"							"Vortex_Shield_AbsorbBulletSmall"
 	"vortex_absorb_sound_1P_VS_3P"					"Vortex_Shield_AbsorbBulletSmall_1P_VS_3P"
 	"projectile_adjust_to_gun_barrel"				"1"
+	"projectile_launch_speed" "20000" //crate
+	
 	"projectile_do_predict_impact_effects"			"1"
 	"entity_color_from_charge"						"1"
 
@@ -142,8 +153,12 @@ WeaponData
                                
      
     "ammo_clip_size"   								"5"
-    "ammo_default_total"							"20"
-    "ammo_no_remove_from_stockpile"					"1"
+    //"ammo_default_total"							"20" //reg 
+	"ammo_default_total" "25" //crate
+	
+    //"ammo_no_remove_from_stockpile"					"1" //reg 
+	"ammo_no_remove_from_stockpile" "0" //crate
+	
     "uses_ammo_pool"								"1"
     "ammo_pool_type"								"shotgun"
       
@@ -155,6 +170,7 @@ WeaponData
     // Damage - When Used by Players
 	"damage_near_value" "12"
 	"damage_far_value" "12"
+	"damage_very_far_value" "12" //crate
 	"damage_near_value_titanarmor" "12"
 	"damage_far_value_titanarmor" "12"
 	"damage_rodeo" "550"
@@ -195,8 +211,12 @@ WeaponData
 
 	// Behavior
 	"fire_rate"   									"4.0"
-	"rechamber_time"  								"1.1"
-	"reload_time" 									"2.5"
+	//"rechamber_time"  								"1.1" //reg
+	"rechamber_time" "0.95" //crate
+	//"reload_time" 									"2.5" //reg 
+	"reload_time" "2.45" //crate
+	"reloadempty_time" "3.35" //crate
+	
 	"reload_time_late1"								"2.2"
 	"reloadempty_time"								"3.5"
 	"reloadempty_time_late1"						"2.5"
@@ -206,12 +226,16 @@ WeaponData
 	"deployfirst_time"								"1.4"
 
 	"headshot_distance" "3940"
-	"damage_headshot_scale" "1.000000"
+	//"damage_headshot_scale" "1.000000" //reg 
+	"damage_headshot_scale" "1.25" //crate
 
 	"sprint_fractional_anims"						"0"
 
 	"ammo_suck_behavior"							"primary_weapons"
 
+	"pass_through_depth" "64" //crate
+	"pass_through_damage_preserved_scale" "0.5" //crate
+	
   // "bolt_hitsize_grow1_time"						"0.025"
   // "bolt_hitsize_grow1_size"						"0.8"
   // "bolt_hitsize_grow2_time"						"0.18"

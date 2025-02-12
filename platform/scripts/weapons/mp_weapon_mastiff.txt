@@ -67,7 +67,7 @@ WeaponData
 	"projectile_flight_sound"                       "weapon_mastiff_projectile_crackle"
 
                        
-	"blast_pattern"									"mastiff"
+	"blast_pattern"									"mastiff_2"
 	"blast_pattern_default_scale"        			"1.1"
     "blast_pattern_ads_scale"                       "0.6" //0.55 // for players, scales pattern when ADS
 	"blast_pattern_zero_distance"        			"512.0"
@@ -210,7 +210,7 @@ WeaponData
 
 	// View Kick
                        
-    "viewkick_spring"                               "mastiff"
+    "viewkick_spring"                               "mastiff_2"
      
                                     
       

@@ -147,7 +147,8 @@ global enum e1v1State
 	CHARSELECT,
 	PREMATCH,
 	MATCH_START,
-	WAITING, 
+	WAITING,
+	SEQUENCE,
 	MATCHING,
 	RESTING,
 	RECAP
@@ -1878,6 +1879,9 @@ void function SetChallengeNotifications( array<entity> players, bool setting )
 {
 	foreach ( player in players )
 	{
+		if( !IsValid( player ) )
+			continue 
+			
 		player.p.challengenotify = setting
 		
 		if( setting )
@@ -1958,10 +1962,28 @@ bool function endLock1v1( entity player, bool addmsg = true, bool revoke = false
 			
 			group.IsKeep = false
 			group.IsFinished = true
-			Gamemode1v1_ForceRest( group.player1 ) //Investigate. potential issue after finished flag
-			Gamemode1v1_ForceRest( group.player2 ) 
 			
-			AssignLegendToGroup( FlowState_ChosenCharacter(), [ group.player1, group.player2 ] )
+			thread //(mk): without this delay, two calls can happen to rest on same frame, .001 apart.
+			(
+				void function() : ( group )
+				{
+					wait 0.1
+					
+					if( !group.isValid )
+						return 
+						
+					entity player1 = group.player1
+					entity player2 = group.player2
+					
+					if( IsValid( player1 ) && !IsCurrentState( player1, e1v1State.RESTING ) )
+						Gamemode1v1_ForceRest( player1 )
+					
+					if( IsValid( player2 ) && !IsCurrentState( player2, e1v1State.RESTING ) )
+						Gamemode1v1_ForceRest( player2 ) 
+				
+					AssignLegendToGroup( FlowState_ChosenCharacter(), [ group.player1, group.player2 ] )
+				}
+			)()
 		}
 	}
 	
@@ -2602,6 +2624,9 @@ void function _3v3ModePlayerToRestingList( entity player )
 
 void function soloModePlayerToRestingList( entity player ) //handles opponent to waiting list.
 {
+	DumpStack()
+	printw( "soloModePlayerToRestingList", player )
+	
 	if( !IsValid( player ) )
 		return
 	
@@ -2869,15 +2894,15 @@ void function respawnInSoloMode( entity player, int respawnSlotIndex = -1 ) //å¤
 		// Warning("resting respawn")
 		try
 		{
+			Gamemode1v1_SetPlayerGamestate( player, e1v1State.SEQUENCE )
 			DecideRespawnPlayer( player, true )
 		}
-		catch (erroree)
+		catch( erroree )
 		{	
 			#if DEVELOPER
 				sqprint("Caught an error that would crash the server" + erroree)
 			#endif
 		}
-		
 		
 		LocPair waitingRoomLocation = getWaitingRoomLocation()
 		if ( !IsValid( waitingRoomLocation ) ) 
@@ -2900,6 +2925,7 @@ void function respawnInSoloMode( entity player, int respawnSlotIndex = -1 ) //å¤
 	
 	try
 	{
+		Gamemode1v1_SetPlayerGamestate( player, e1v1State.SEQUENCE )
 		DecideRespawnPlayer( player, true )
 	}
 	catch (error)
@@ -5368,10 +5394,16 @@ void function Gamemode1v1_OnPlayerDied( entity victim, entity attacker, var dama
 		LocPair waitingRoomLocation = getWaitingRoomLocation()
 		
 		if( !IsAlive( victim ) )
+		{
+			Gamemode1v1_SetPlayerGamestate( victim, e1v1State.SEQUENCE )
 			DecideRespawnPlayer( victim, false )
+		}
 		
-		if ( !IsValid( waitingRoomLocation ) )  //(mk): this should never be hit...
+		if ( !IsValid( waitingRoomLocation ) )
+		{//(mk): this should never be hit, Maki had it checked. 
+			mAssert( false, "Waiting room location was invalid." )
 			return
+		}
 			
 		ClearInvincible( victim )
 		maki_tp_player( victim, waitingRoomLocation )
