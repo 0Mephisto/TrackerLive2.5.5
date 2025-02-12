@@ -4664,6 +4664,7 @@ void function ForceAllRoundsToFinish_solomode()
 		if( isPlayerInWaitingList( player ) )
 			continue
 		
+		Gamemode1v1_SetPlayerGamestate( player, e1v1State.MATCH_START )
 		soloModePlayerToWaitingList( player )
 		FS_ClearRealmsAndAddPlayerToAllRealms( player )
 	}
