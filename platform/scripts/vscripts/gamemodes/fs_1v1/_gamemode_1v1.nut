@@ -1963,7 +1963,7 @@ bool function endLock1v1( entity player, bool addmsg = true, bool revoke = false
 			group.IsKeep = false
 			group.IsFinished = true
 			
-			thread //(mk): without this delay, two calls can happen to rest on same frame, .001 apart.
+			thread //(mk): without this delay, two calls can happen to rest on same frame, .001 apart. Resting list handles each other opponent causing undefined game behavior when group is still keep.
 			(
 				void function() : ( group )
 				{
@@ -2624,9 +2624,6 @@ void function _3v3ModePlayerToRestingList( entity player )
 
 void function soloModePlayerToRestingList( entity player ) //handles opponent to waiting list.
 {
-	DumpStack()
-	printw( "soloModePlayerToRestingList", player )
-	
 	if( !IsValid( player ) )
 		return
 	
