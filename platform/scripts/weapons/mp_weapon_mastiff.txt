@@ -56,7 +56,7 @@ WeaponData
 	"vortex_absorb_sound"							"Vortex_Shield_AbsorbBulletSmall"
 	"vortex_absorb_sound_1P_VS_3P"					"Vortex_Shield_AbsorbBulletSmall_1P_VS_3P"
 
-    "projectiles_per_shot"                          "8"
+    "projectiles_per_shot"                          "6"
 
 	"projectile_adjust_to_gun_barrel"				"1"
 
@@ -68,10 +68,16 @@ WeaponData
 
                        
 	"blast_pattern"									"mastiff_2"
-	"blast_pattern_default_scale"        			"1.1"
-    "blast_pattern_ads_scale"                       "0.6" //0.55 // for players, scales pattern when ADS
-	"blast_pattern_zero_distance"        			"512.0"
-	"blast_pattern_npc_scale"            			"0.75"  // scales on top of the default
+	"blast_pattern_default_scale" "1.400000"
+	"blast_pattern_ads_scale" "0.800000"
+	"blast_pattern_zero_distance" "512.000000"
+	"blast_pattern_npc_scale" "0.750000"
+	
+	
+	//"blast_pattern_default_scale"        			"1.1"
+    //"blast_pattern_ads_scale"                       "0.6" //0.55 // for players, scales pattern when ADS
+	//"blast_pattern_zero_distance"        			"512.0"
+	//"blast_pattern_npc_scale"            			"0.75"  // scales on top of the default
 
 	"sound_dryfire"									"shotgun_dryfire"
 	"sound_pickup"									"wpn_pickup_Rifle_1P"
@@ -191,8 +197,8 @@ WeaponData
 	"reloadsegmentempty_time_end"					"0.55"
 
 	"deployfirst_time"								"1.25"
-	"deploy_time" 									"0.45"
-	"holster_time"									"0.4"
+	"deploy_time" 									"0.500000"
+	"holster_time"									"0.600000"
 	"lower_time"  									"0.25"
 	"raise_time"  									"0.3"
 

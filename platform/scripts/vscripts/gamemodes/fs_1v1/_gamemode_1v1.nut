@@ -981,41 +981,48 @@ void function removeGroupByHandle( int handle )
 	else
 	{
 		if( !handle )
-		{
 			sqerror("[removeGroupByHandle] ERROR: handle was null")
-		}
 		else 
-		{
 			sqerror(format("[removeGroupByHandle] Handle: \"%d\" does not exist in table: \"file.groupsInProgress\"", handle ))
-		}
 	}
 }
 
 void function removeGroup( soloGroupStruct groupToRemove ) 
 {
-	mGroupMutexLock = true 
-	if ( IsValid( groupToRemove.player1 ) && groupToRemove.player1.p.handle in file.playerToGroupMap )
+	mGroupMutexLock = true
+	
+	int groupHandle = groupToRemove.groupHandle
+	int handle1
+	int handle2
+	
+	if ( IsValid( groupToRemove.player1 ) )
+		handle1 = groupToRemove.player1.p.handle
+		
+	if ( IsValid( groupToRemove.player2 ) )
+		handle2 = groupToRemove.player2.p.handle
+	
+	if ( handle1 in file.playerToGroupMap )
 	{	
 		#if DEVELOPER
-			sqprint(format("deleting player 1 handle: %d from group map",groupToRemove.player1.p.handle))
+			sqprint( format( "deleting player 1 handle: %d from group map", handle1 ) )
 		#endif
-		delete file.playerToGroupMap[ groupToRemove.player1.p.handle ]
+		delete file.playerToGroupMap[ handle1 ]
 	}
 		
-	if ( IsValid( groupToRemove.player2 ) && groupToRemove.player2.p.handle in file.playerToGroupMap )
-	{	
-		#if DEVELOPER
-			sqprint(format( "deleting player 2 handle: %d from group map",groupToRemove.player2.p.handle ) )
-		#endif
-		delete file.playerToGroupMap[ groupToRemove.player2.p.handle ]
-	}
-	
-	if( groupToRemove.groupHandle in file.groupsInProgress )
+	if ( handle2 in file.playerToGroupMap )
 	{
 		#if DEVELOPER
-			sqprint( format( "removing group: %d", groupToRemove.groupHandle ) )
+			sqprint(format( "deleting player 2 handle: %d from group map", handle2 ) )
 		#endif
-		delete file.groupsInProgress[ groupToRemove.groupHandle ]
+		delete file.playerToGroupMap[ handle2 ]
+	}
+	
+	if( groupHandle in file.groupsInProgress )
+	{
+		#if DEVELOPER
+			sqprint( format( "removing group: %d", groupHandle ) )
+		#endif
+		delete file.groupsInProgress[ groupHandle ]
 	}
 	else 
 	{
@@ -1957,11 +1964,8 @@ bool function endLock1v1( entity player, bool addmsg = true, bool revoke = false
 		
 		if( group.isValid )
 		{	
-			sendGroupRecapsToPlayers( group )
-			addmsg = false
-			
 			group.IsKeep = false
-			group.IsFinished = true
+			//group.IsFinished = true
 			
 			thread //(mk): without this delay, two calls can happen to rest on same frame, .001 apart. Resting list handles each other opponent causing undefined game behavior when group is still keep.
 			(
@@ -1978,10 +1982,13 @@ bool function endLock1v1( entity player, bool addmsg = true, bool revoke = false
 					if( IsValid( player1 ) && !IsCurrentState( player1, e1v1State.RESTING ) )
 						Gamemode1v1_ForceRest( player1 )
 					
+					WaitFrame()
+					
 					if( IsValid( player2 ) && !IsCurrentState( player2, e1v1State.RESTING ) )
 						Gamemode1v1_ForceRest( player2 ) 
 				
 					AssignLegendToGroup( FlowState_ChosenCharacter(), [ group.player1, group.player2 ] )
+					sendGroupRecapsToPlayers( group )
 				}
 			)()
 		}
@@ -2360,9 +2367,8 @@ void function expliciteRest( entity player )
 	}
 	catch (error){}
 	
-	thread respawnInSoloMode( player )
-	//TakeAllWeapons( player )
-	
+	//thread respawnInSoloMode( player ) //problem
+	//TakeAllWeapons( player )	
 	HolsterAndDisableWeapons_Raw( player ) //✓
 }
 
@@ -2599,7 +2605,7 @@ void function soloModePlayerToInProgressList( soloGroupStruct newGroup )
 	
     if ( slotIndex > -1 ) 
 	{
-        newGroup.slotIndex = slotIndex;
+        newGroup.slotIndex = slotIndex
         newGroup.groupLocStruct = soloLocations.getrandom()
 		
 		if( mGroupMutexLock ) 
@@ -2628,8 +2634,6 @@ void function soloModePlayerToRestingList( entity player ) //handles opponent to
 		return
 	
 	player.TakeOffhandWeapon( OFFHAND_MELEE )
-	
-	ResetIBMM( player )
 	ClearNotifications( player )
 	
 	player.SetPlayerNetEnt( "FSDM_1v1_Enemy", null )
@@ -3434,9 +3438,8 @@ void function Gamemode1v1_Init( int eMap )
 	)
 	
 	BannerImages_1v1Init()
-	
-	AddClientCommandCallback( "rest", ClientCommand_Maki_SoloModeRest )
 	Gamemode1v1_SetRestEnabled()
+	AddClientCommandCallback( "rest", ClientCommand_Maki_SoloModeRest )
 }
 
 void function Gamemode1v1_SetRestEnabled( bool value = true )
@@ -3457,8 +3460,7 @@ void function Gamemode1v1_soloModeThread( LocPair waitingRoom )
 		printt( "Time():", Time(), "championDisplayEndTime:", GetGlobalNetTime( "championDisplayEndTime" ) )
 	#endif 
 	
-	WaitForChampionToFinish()
-		
+	WaitForChampionToFinish()	
 	thread soloModeThread( waitingRoom )
 }
 
@@ -3799,15 +3801,17 @@ void function soloModeThread( LocPair waitingRoomLocation )
 									
 				destroyRingsForGroup( group )
 				
+				bool player1Rested = false
 				if ( IsValid( group.player1 ) )
 				{
-					if( !TryProcessRestRequest( group.player1 ) )
+					player1Rested = TryProcessRestRequest( group.player1 )
+					if( !player1Rested )
 						soloModePlayerToWaitingList( group.player1 )		
 				}
 					
 				if ( IsValid( group.player2 ) )
 				{
-					if( !TryProcessRestRequest( group.player2 ) )
+					if( !TryProcessRestRequest( group.player2 ) && !player1Rested )
 						soloModePlayerToWaitingList( group.player2 )
 				}
 				
@@ -3909,7 +3913,6 @@ void function soloModeThread( LocPair waitingRoomLocation )
 				
 				groupsToRemove.append( group )
 				quit = true
-				group.isValid = false // 2/11/2025
 			}
 			
 			//检测乱跑的脑残
@@ -4345,9 +4348,6 @@ void function FS_1v1_OnPlayerDisconnected( entity player )
 
 	foreach ( _, playerInWaitingStruct in file.soloPlayersWaiting ) //(mk): _ is waiting struct playerHandle, not used here.
 	{
-		if( !IsValid( playerInWaitingStruct ) )
-			continue
-		
 		if ( playerInWaitingStruct.handle == playerHandle )
 		{
 			deleteWaitingPlayer( playerHandle )
@@ -4645,7 +4645,6 @@ void function ForceAllRoundsToFinish_solomode()
 				player.SetSpecReplayDelay( 0 )
 				player.SetObserverTarget( null )
 				player.StopObserverMode()
-				//Remote_CallFunction_NonReplay(player, "ServerCallback_KillReplayHud_Deactivate")
 				Remote_CallFunction_ByRef( player, "ServerCallback_KillReplayHud_Deactivate" )
 				player.MakeVisible()
 				player.ClearInvulnerable()
@@ -4664,7 +4663,7 @@ void function ForceAllRoundsToFinish_solomode()
 		if( isPlayerInWaitingList( player ) )
 			continue
 		
-		Gamemode1v1_SetPlayerGamestate( player, e1v1State.MATCH_START )
+		Gamemode1v1_SetPlayerGamestate( player, e1v1State.SEQUENCE )
 		soloModePlayerToWaitingList( player )
 		FS_ClearRealmsAndAddPlayerToAllRealms( player )
 	}
@@ -5573,6 +5572,9 @@ void function AssignLegendToGroup( int index, array<entity> players )
 {
 	foreach( player in players )
 	{
+		if( !IsValid( player ) )
+			continue 
+			
 		if( index <= 10 )
 		{
 			ItemFlavor character = file.characters[ characterslist[ index ] ]

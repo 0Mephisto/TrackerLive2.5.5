@@ -243,7 +243,7 @@ WeaponData
         }
         hopup_headshot_dmg
         {
-        	"damage_headshot_scale"			"2.25"
+        	"damage_headshot_scale"			"2.500000"
         	"projectile_trail_effect_0"     "P_tracer_proj_sniper_piercer"
         	"fire_sound_1_player_1p"		"weapon_wingman_fire_skull_1p"
 			"fire_sound_1_player_3p"		"weapon_wingman_fire_skull_3p"

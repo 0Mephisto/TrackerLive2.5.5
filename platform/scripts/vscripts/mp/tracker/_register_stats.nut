@@ -120,6 +120,10 @@ void function Script_RegisterAllStats()
 		Tracker_RegisterStat( "previous_kills", null, Tracker_ReturnKills )
 		Tracker_RegisterStat( "previous_damage", null, Tracker_ReturnDamage )
 		//Tracker_RegisterStat( "previous_survival_time", null,  )
+		//Tracker_RegisterStat( "test_array", null, TrackerStats_TestStringArray )
+		//Tracker_RegisterStat( "test_bool_array", null, TrackerStats_TestBoolArray )
+		//Tracker_RegisterStat( "test_int_array", null, TrackerStats_TestIntArray )
+		//Tracker_RegisterStat( "test_float_array", null, TrackerStats_TestFloatArray )
 		
 		AddCallback_PlayerDataFullyLoaded( Callback_CoreStatInit )
 	}
@@ -290,6 +294,27 @@ var function TrackerStats_CtfWins( string uid )
 	return ent.p.wonctf ? 1 : 0
 }
 
+// var function TrackerStats_TestStringArray( string uid )
+// {
+	// return ["test", "test2", "test3"]
+// }
+
+// var function TrackerStats_TestBoolArray( string uid )
+// {
+	// return [ true, false, false, true ]
+// }
+
+// var function TrackerStats_TestFloatArray( string uid )
+// {
+	// return [ 1.0, 3.5188494 ]
+// }
+
+// var function TrackerStats_TestIntArray( string uid )
+// {
+	// return [ 7,8,1,5,5,9,1,6,5,4,5,6,5 ]
+// }
+
+//Todo: enable for indev.
 // var function TrackerStats_GetPortalPlacements( string uid )
 // {
 	// entity ent = GetPlayerEntityByUID( uid )

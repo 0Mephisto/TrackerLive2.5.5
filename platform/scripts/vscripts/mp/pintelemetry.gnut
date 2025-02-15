@@ -1445,7 +1445,7 @@ void function __SetPlayerSyncData( entity player )
 	string OID = player.GetPlatformUID()	
 
 	array<string> statKeys = Stats__AddPlayerStatsTable( OID )
-	array<string> PersistenceData = split( GetPlayerStatString( OID, "settings" ), "," ) //Todo, remove string dump, set to untyped table. dump to PlayerData
+	table<string, var> persistenceData = GetPlayerSettingsTable( OID )
 	
 	OnThreadEnd
 	( 
@@ -1465,21 +1465,21 @@ void function __SetPlayerSyncData( entity player )
 	if( !IsValid( player ) )
 		return 
 		
-	if( statKeys.len() > 0 || PersistenceData.len() > 0 )
+	int syncDataLen = statKeys.len()
+	if( syncDataLen > 0 || persistenceData.len() > 0 )
 	{		
 		#if DEVELOPER 
 			printt( "\n\nIncoming StatsKeys:" )
 			print_string_array( statKeys )
 			printt( "\n\nIncoming Persistence Settings:" )
-			print_string_array( PersistenceData )
-		#endif 
+			print_var_table( persistenceData )
+		#endif
 	
-		int SYNC_Data_length = statKeys.len()
-		
-		if( SYNC_Data_length < REQUIRED_SYNC_DATA_FIELDS ) 
+			
+		if( syncDataLen < REQUIRED_SYNC_DATA_FIELDS ) 
 		{
 			#if DEVELOPER 
-				sqerror( "Stats Failed for: " + OID + " ; returned " + SYNC_Data_length.tostring() + " fields;  required fields = " + REQUIRED_SYNC_DATA_FIELDS.tostring() )
+				sqerror( "Stats Failed for: " + OID + " ; returned " + syncDataLen.tostring() + " fields;  required fields = " + REQUIRED_SYNC_DATA_FIELDS.tostring() )
 			#endif 
 			
 			__Tracker_SignalPlayerStatsReady( player )
@@ -1491,17 +1491,15 @@ void function __SetPlayerSyncData( entity player )
 			if( key in file.registeredStatCallbackFuncs )
 			{
 				foreach( callbackFunc in file.registeredStatCallbackFuncs[ key ] )
-				{
 					callbackFunc( player )
-				}
 			}
-		}		
+		}
 		
 		// The reason for this is because for a player who just rejoined, 
 		// we don't want to overwrite their server persistence settings 
 		// with the ones we just shipped in, as they will be older 
 		// than the data we have in the servers local memory.
-		UpdatePlayerData( player, PersistenceData, GetIgnoreSyncFlag( player ) )		
+		UpdatePlayerData( player, persistenceData, GetIgnoreSyncFlag( player ) )		
 	}
 	
 	__Tracker_SignalPlayerStatsReady( player )
@@ -1546,22 +1544,18 @@ void function AddCallback_PlayerData( string setting, void functionref( entity p
 	}
 }
 
-void function UpdatePlayerData( entity player, array<string> Sync_Data, bool ignoreSync = false )
+void function UpdatePlayerData( entity player, table<string,var> syncData, bool ignoreSync = false )
 {
-	int i = 0
-	
-	#if DEVELOPER
-		//printarray( Sync_Data )
-	#endif
-	
 	string uid = player.p.UID
-	foreach( setting in Sync_Data )
+	foreach( string setting, var persistenceValue in syncData )
 	{
-		string key = ReturnKey( setting )
-		
+		string key = setting
 		if( key in file.PlayerSettingsMap )
 		{
-			string value = ignoreSync ? Tracker_FetchPlayerData( uid, key ) : ReturnValue( Sync_Data[ i ] )
+			if( typeof persistenceValue != "string" )
+				continue //safety check to prevent backend from crashing servers. Todo: Allow types.
+
+			string value = ignoreSync ? Tracker_FetchPlayerData( uid, key ) : expect string( persistenceValue )
 			
 			if( !ignoreSync )
 				Tracker_SavePlayerData( uid, key, value )
@@ -1575,8 +1569,6 @@ void function UpdatePlayerData( entity player, array<string> Sync_Data, bool ign
 				sqerror( format("Setting %s does not exist in PlayerSettingsMap", key ) )
 			#endif
 		}
-		
-		i++;
 	}
 }
 
@@ -2082,8 +2074,8 @@ void function Init_NewGame()
 		file.LogE
 	)
 	
-	foreach( player in GetPlayerArray() )
-		CheckPlayerStartInRest( player )
+	// foreach( player in GetPlayerArray() )
+		// CheckPlayerStartInRest( player )
 	
 	PrintMatchIDtoAll()
 	
@@ -2502,7 +2494,7 @@ void function EventMessageSystem()
 
 void function __LoadServerBot()
 {
-	wait 3 //todo: time this event based
+	wait 3.5 //todo: time this event based
 	
 	#if DEVELOPER
 		//printt(":(pin):: loaded server bot")
