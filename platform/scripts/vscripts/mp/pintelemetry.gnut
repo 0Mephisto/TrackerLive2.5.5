@@ -37,11 +37,7 @@ global function GameSummary_GetPlayerData
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 
-global const LOG_ERRORS = true
-
-
-
-
+const LOG_ERRORS = true
 //do not edit below this line
 
 
@@ -3320,7 +3316,7 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 			}
 		}
 
-		#if DEVELOPER
+		#if DEVELOPER && DEBUGDMG
 			foreach ( event in allDamageEvents ) 
 				sqprint( format( "Tracker: Remaining event handle: dealer: %d, reciever: %d ", event.attackerHandle, event.victimHandle ) )
 					
@@ -5002,8 +4998,8 @@ void function PlayerDisconnectedCallback( entity player )
 	int attackedEntHandle
 	int lastAttackerHandle
 	
-	if( IsValid( attackedEnt ) && attackedEnt.IsPlayer() )
-		attackedEntHandle = attackedEnt.p.handle
+	if( IsValid( attackedEnt ) )
+		attackedEntHandle = attackedEnt.GetEncodedEHandle()
 
 	if( !IsValid( lastAttacker ) )
 		lastAttacker = player.p.lastOpponent
@@ -5012,7 +5008,7 @@ void function PlayerDisconnectedCallback( entity player )
 		lastAttackerHandle = lastAttacker.GetEncodedEHandle()
 
 	
-	//only add damage events to queue if 1v1 type gamemode ( only p-v-p )
+	//only add damage events to delete if 1v1 type gamemode ( only p-v-p )
 	if( file.gamemode_type_1v1 )
 	{
 		RemoveDamageEvents( playerHandle, attackedEntHandle )

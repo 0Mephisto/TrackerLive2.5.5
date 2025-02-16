@@ -44,6 +44,7 @@ global function GetPlayerRoundStatBool
 global function GetPlayerRoundStatFloat
 
 global function GetPlayerSettingsTable
+global function MakeVarArrayInt
 
 global typedef StatsTable table< string, var >
 typedef UIDString string
@@ -209,7 +210,7 @@ table<string, var> function GetPlayerSettingsTable( UIDString oid )
     if ( !Stats__PlayerExists( oid ) )
         return EmptyStats()
 		
-    if ( !("settings" in file.onlineStatsTables[ oid ] ) )
+    if ( !( "settings" in file.onlineStatsTables[ oid ] ) )
         return EmptyStats()
 
     var rawSettings = file.onlineStatsTables[ oid ][ "settings" ]
@@ -254,7 +255,7 @@ float function GetPlayerStatFloat( UIDString player_oid, string statname )
 	
 	return 0.0
 }
-
+ 
 array<var> function GetPlayerStatArray( UIDString player_oid, string statname )
 {
 	array<var> statArray
@@ -326,6 +327,7 @@ array<bool> function GetPlayerStatArrayBool( UIDString player_oid, string statna
 	return statArray
 }
 
+//all stat arrays have a backend limit of 1000 items.
 void function PlayerStatArray_Append( UIDString player_oid, string statname, var value )
 {
 	if ( player_oid in file.onlineStatsTables && statname in file.onlineStatsTables[ player_oid ] ) 
@@ -545,6 +547,11 @@ void function __AggregateStat_internal( entity player, string statKey )
 			
 		case "array":
 			__RawSetStat( uid, statKey, data, false )
+			break 
+			
+		case "table":
+		default:
+			mAssert( false, format( "%s is currently unsupported.", vType ) )
 	}
 }
 
@@ -555,6 +562,15 @@ var function MakeVar( ... )
 	
 	mAssert( false, "Called MakeVar with no arguments." )
 	return null
+}
+
+var function MakeVarArrayInt( array<int> typedArray )
+{
+	array arr
+	foreach( item in typedArray )
+		arr.append( item )
+		
+	return arr
 }
 
 void function Stats__ResetTableByValueType( StatsTable statsTbl )

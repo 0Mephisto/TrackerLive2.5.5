@@ -4,8 +4,8 @@ globalize_all_functions
 
 const bool STORE_STAT = true 
 
-struct {
-
+struct 
+{
 	bool RegisterCoreStats 	= true
 	bool bStatsIs1v1Type 	= false
 
@@ -120,13 +120,16 @@ void function Script_RegisterAllStats()
 		Tracker_RegisterStat( "previous_kills", null, Tracker_ReturnKills )
 		Tracker_RegisterStat( "previous_damage", null, Tracker_ReturnDamage )
 		//Tracker_RegisterStat( "previous_survival_time", null,  )
-		//Tracker_RegisterStat( "test_array", null, TrackerStats_TestStringArray )
-		//Tracker_RegisterStat( "test_bool_array", null, TrackerStats_TestBoolArray )
-		//Tracker_RegisterStat( "test_int_array", null, TrackerStats_TestIntArray )
-		//Tracker_RegisterStat( "test_float_array", null, TrackerStats_TestFloatArray )
 		
 		AddCallback_PlayerDataFullyLoaded( Callback_CoreStatInit )
 	}
+	
+	#if DEVELOPER 
+		//Tracker_RegisterStat( "test_array", null, TrackerStats_TestStringArray )
+		//Tracker_RegisterStat( "test_bool_array", null, TrackerStats_TestBoolArray )
+		//Tracker_RegisterStat( "test_int_array", null, TrackerStats_TestIntArray, STORE_STAT )
+		//Tracker_RegisterStat( "test_float_array", null, TrackerStats_TestFloatArray )
+	#endif 
 	
 	//Reporting
 	if( Flowstate_EnableReporting() )
@@ -311,7 +314,7 @@ var function TrackerStats_CtfWins( string uid )
 
 // var function TrackerStats_TestIntArray( string uid )
 // {
-	// return [ 7,8,1,5,5,9,1,6,5,4,5,6,5 ]
+	// return MakeVarArrayInt( GetPlayerEntityByUID( uid ).p.testarray ) // must be plain 'array' or made untyped.
 // }
 
 //Todo: enable for indev.
@@ -433,7 +436,7 @@ void function Script_RegisterAllShipFunctions()
 /////////////////////////////////
 
 
-void function OnStatsShipped_Cringe( string uid )
+void function OnStatsShipped_Cringe( string uid ) //todo deprecate
 {
 	entity ent = GetPlayerEntityByUID( uid )
 	
