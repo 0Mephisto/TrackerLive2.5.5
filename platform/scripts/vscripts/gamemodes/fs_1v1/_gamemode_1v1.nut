@@ -246,6 +246,9 @@ struct
 	bool player_rest_collision_enabled
 	bool allow_legend_select
 	bool enableHelmets
+	bool giveCharmsWeapons
+	bool giveSkinsWeapons
+	bool enableCosmetics
 	
 } settings
 
@@ -589,6 +592,9 @@ void function INIT_PlaylistSettings()
 	settings.player_rest_collision_enabled			= GetCurrentPlaylistVarBool( "player_rest_collision_enabled", false )
 	settings.allow_legend_select					= GetCurrentPlaylistVarBool( "allow_legend_select", false )
 	settings.enableHelmets							= GetCurrentPlaylistVarBool( "enable_helmets", false )
+	settings.giveCharmsWeapons 						= GetCurrentPlaylistVarBool( "flowstate_givecharms_weapons", false )
+	settings.giveSkinsWeapons 						= GetCurrentPlaylistVarBool( "flowstate_giveskins_weapons", false )
+	settings.enableCosmetics 						= GetCurrentPlaylistVarBool( "flowstate_enable_cosmetics", false )
 }
 
 bool function isCustomWeaponAllowed()
@@ -4603,20 +4609,23 @@ void function GivePrimaryWeapon_1v1( entity player, string weapon, int slot ) //
 	if( weaponNew.UsesClipsForAmmo() )
 		weaponNew.SetWeaponPrimaryClipCount( weaponNew.GetWeaponPrimaryClipCountMax() )	
 
-	ItemFlavor ornull weaponSkinOrNull = null
-	array<string> fsCharmsToUse = [ "SAID00701640565", "SAID01451752993", "SAID01334887835", "SAID01993399691", "SAID00095078608", "SAID01439033541", "SAID00510535756", "SAID00985605729" ]
-	int chosenCharm = ConvertItemFlavorGUIDStringToGUID( fsCharmsToUse.getrandom() )
-	ItemFlavor ornull weaponCharmOrNull = GetCurrentPlaylistVarBool( "flowstate_givecharms_weapons", false ) == false ? null : GetItemFlavorByGUID( chosenCharm )
-	ItemFlavor ornull weaponFlavor = GetWeaponItemFlavorByClass( weapon )
-
-	if( weaponFlavor != null )
+	if( settings.enableCosmetics )
 	{
-		array<int> weaponLegendaryIndexMap = FS_ReturnLegendaryModelMapForWeaponFlavor( expect ItemFlavor( weaponFlavor ) )
-		if( weaponLegendaryIndexMap.len() > 1 && GetCurrentPlaylistVarBool( "flowstate_giveskins_weapons", false ) )
-			weaponSkinOrNull = GetItemFlavorByGUID( weaponLegendaryIndexMap[RandomIntRangeInclusive(1,weaponLegendaryIndexMap.len()-1)] )
-	}
+		ItemFlavor ornull weaponSkinOrNull = null
+		array<string> fsCharmsToUse = [ "SAID00701640565", "SAID01451752993", "SAID01334887835", "SAID01993399691", "SAID00095078608", "SAID01439033541", "SAID00510535756", "SAID00985605729" ]
+		int chosenCharm = ConvertItemFlavorGUIDStringToGUID( fsCharmsToUse.getrandom() )
+		ItemFlavor ornull weaponCharmOrNull = settings.giveCharmsWeapons == false ? null : GetItemFlavorByGUID( chosenCharm )
+		ItemFlavor ornull weaponFlavor = GetWeaponItemFlavorByClass( weapon )
 
-	WeaponCosmetics_Apply( weaponNew, weaponSkinOrNull, weaponCharmOrNull )
+		if( weaponFlavor != null )
+		{
+			array<int> weaponLegendaryIndexMap = FS_ReturnLegendaryModelMapForWeaponFlavor( expect ItemFlavor( weaponFlavor ) )
+			if( settings.giveSkinsWeapons && weaponLegendaryIndexMap.len() > 1  )
+				weaponSkinOrNull = GetItemFlavorByGUID( weaponLegendaryIndexMap[RandomIntRangeInclusive(1,weaponLegendaryIndexMap.len()-1)] )
+		}
+
+		WeaponCosmetics_Apply( weaponNew, weaponSkinOrNull, weaponCharmOrNull )
+	}
 }
 
 string function ReturnRandomPrimaryMetagame_1v1()
