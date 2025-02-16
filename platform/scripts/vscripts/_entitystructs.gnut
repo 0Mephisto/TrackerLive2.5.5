@@ -497,6 +497,8 @@ global struct ServerEntityStruct
 	array<void functionref( entity player, int state )> onPlayerGamestateChangedCallbacks
 	int gamemode1v1State = -1
 	array<entity> myWaypoints
+	
+	entity lastAttackedEnt
 }
 
 global struct MeritData
@@ -1161,7 +1163,7 @@ global struct ServerPlayerStruct
 	int quickHealEnableCount
 	
 	//custom new 
-	entity lastOpponent
+	entity lastOpponent //Usage in 1v1, applies to the last started fight.
 	int submitCringeCount
 	int cringedCount
 	array< CringeReport > cringeDataReports

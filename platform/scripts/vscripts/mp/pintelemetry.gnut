@@ -167,7 +167,7 @@ global function Tracker_RegisterStat
 global function Tracker_RegisterAllSettings
 global function Tracker_StatsMetricsByUID
 global function Tracker_EndFight
-global function Tracker_AddDamageEventsToDeleteQueue
+//global function RemoveDamageEvents
 global function Tracker_StatLocalAllowed
 global function Tracker_IgnoreResync
 
@@ -233,6 +233,7 @@ const DEBUGDMG = false
 	
 	#if DEBUGDMG
 		global function DEV_DamageInfo
+		global function DEV_PrintDamageMap
 	#endif
 #endif
 
@@ -376,7 +377,6 @@ array< DamageEvent > allDamageEvents
 table< int, DamageEvent > allDamageEventsMap = {}
 array< PlayerMetrics > PlayerMetricsArray
 array< PlayerVerifyCount > playerVerifyCounts
-array< DeleteEvents > DeleteEventTaskList // queue for managing event deletion //TODO rework
 
 #if SERVER   
 	bool function Logging_ShipStats() 				{ return GetCurrentPlaylistVarBool("logging_shipstats", false) }
@@ -2620,33 +2620,48 @@ void function RecapStats(entity player, float damage, float hits, float shots, s
 
 DamageEvent function Tracker_CreateDamageEvent( int weaponSource, float damage, float actionTimestamp, float shotIdentifier, int attackerHandle, int victimHandle ) 
 {
-    DamageEvent event;
-	event.isNew = true; //bool
-	event.attackerHandle = attackerHandle; //players ehandle (for comparison logic) - int
-	event.victimHandle = victimHandle; //int
-    event.weaponSource = weaponSource; // int
-    event.damage = damage; //float
-    event.hitCount = 0; //int
-    event.bulletsHit = 0.0; //float
-	event.headshots = 0; //int
+	#if DEVELOPER && DEBUGDMG 
+		printw( "Tracker_CreateDamageEvent: attackerHandle:", attackerHandle, "victimHandle:", victimHandle )
+	#endif 
+	
+    DamageEvent event
+	event.isNew = true //bool
+	event.attackerHandle = attackerHandle //players ehandle (for comparison logic) - int
+	event.victimHandle = victimHandle //int
+    event.weaponSource = weaponSource // int
+    event.damage = damage //float
+    event.hitCount = 0 //int
+    event.bulletsHit = 0.0 //float
+	event.headshots = 0 //int
 	event.actionTimestamp = (actionTimestamp - .0900); //float
-	event.lastWeaponSource = weaponSource; //int
-	event.lastHitTimestamp = 0; //float
-	event.shotIdentifier = shotIdentifier; //int
+	event.lastWeaponSource = weaponSource //int
+	event.lastHitTimestamp = 0 //float
+	event.shotIdentifier = shotIdentifier //int
 	event.isValid = true
 	
-	allDamageEventsMap[ eventID( attackerHandle, victimHandle ) ] <- event
+	int attackerEventID = eventID( attackerHandle, victimHandle ) 
 	
-    return event;
+	if( attackerEventID in allDamageEventsMap )
+		allDamageEventsMap[ attackerEventID ] = event
+	else
+		allDamageEventsMap[ attackerEventID ] <- event
+	
+    return event
 }
 
-void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int victim_handle )
+void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Todo possibly a queue
 {
-	DeleteEvents Event;
-	Event.attacker_handle = attacker_handle 
-	Event.victim_handle = victim_handle
-	Event.fightEndTime = Time()
-	Tracker_AddEventTask( Event )
+	DeleteEvents event
+	event.attacker_handle = attacker_handle 
+	event.victim_handle = victim_handle
+	event.fightEndTime = Time()
+	
+	RemoveEvents
+	(
+		event.victim_handle, 
+		event.attacker_handle, 
+		event.fightEndTime
+	)
 }
 
 	void function __EndFight( entity victim, entity attacker, var damageInfo, float deathtime )
@@ -2655,7 +2670,12 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 			WaitEndFrame() //all data this function needs may not be wrote by it's coroutine yet.
 		
 		if( !damageInfo )
+		{
+			#if DEVELOPER
+				mAssert( false, "Invalid damageInfo handle" )
+			#endif 
 			return
+		}
 		
 		if ( !IsValid( victim ) || ( !victim.IsPlayer() && !victim.IsNPC() ) || !IsValid( attacker ) )
 		{
@@ -2667,23 +2687,25 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		}
 		
 		bool victimIsPlayer = victim.IsPlayer()
+		int damageSourceID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
 		
 		//Increment fightid
 		int id = GetUniqueFightId()
 		
 		//set player vars
 		string ornull victimName = victimIsPlayer ? victim.p.name : victim.GetNetworkedClassName()
-		
-		if( victimName == null )
 		{
-			victimName = "worldspawn"
-			string msg = "Victimname was null during endfight id " + id.tostring()
-			
-			#if DEVELOPER
-				sqerror( msg )
-			#endif 
-			
-			LogError( msg )
+			if( victimName == null )
+			{
+				victimName = "worldspawn"
+				string msg = "Victimname was null during endfight id " + id.tostring()
+				
+				#if DEVELOPER
+					sqerror( msg )
+				#endif 
+				
+				LogError( msg )
+			}
 		}
 		
 		string victimUID = victimIsPlayer ? victim.p.UID : string( victim.GetEncodedEHandle() )
@@ -2692,9 +2714,29 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		string attackerUID
 		string attackerName
 		
-		int victim_handle = victimIsPlayer ? victim.p.handle : victim.GetEncodedEHandle()
+		if( damageSourceID == eDamageSourceId.damagedef_despawn && attacker == victim )
+		{
+			// The victim will be the attacker. We don't want to use attacker's handle as victim when 
+			// finding damage events to remove, else they will not be found for the correct attacker/victim.
+			// Thus events are not removed properly in time before MAX_FIGHT_HISTORY_TIME fallback, resulting
+			// in a rare case where damage blocks can stack with old ones after a player has despawned(rest),
+			// and then fights the same player again -- resulting in excess damage history past the
+			// max possible damage for a player's health+shields for that fight if the attacker was not shot back. ( normally okay in multi-combat )
+			
+			//printw( "victim.e.lastAttackedEnt =", victim.e.lastAttackedEnt )
+			entity potentialVictim = victim.e.lastAttackedEnt
+			if( IsValid( potentialVictim ) )
+				potentialVictim = victimIsPlayer ? victim.p.lastOpponent : null //fallback 	
+			
+			if( !IsValid( potentialVictim ) )
+				return
+			else
+				victim = potentialVictim
+		}
+			
+		int victim_handle = victim.GetEncodedEHandle()
 		int attacker_handle = attacker.IsPlayer() ? attacker.p.handle : DamageInfo_GetDamageSourceIdentifier( damageInfo )
-		
+
 		if( attacker_handle == eDamageSourceId.bleedout )
 		{
 			#if DEVELOPER
@@ -2712,75 +2754,80 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 				attacker = potentialAttacker
 				attacker_handle = attacker.GetEncodedEHandle()
 			}
+			else 
+			{
+				attacker = GetEnt( "worldspawn" ) 
+				//set to worldspawn as a fallback for credited killers who are not valid, 
+				//but leave handle as identifier for stats. ( uses hardcodedWorldspawnRefs )
+			}
 		}
-		
-		if( attacker.IsNPC() )
+		else if ( attacker.IsNPC() )
 			attacker_handle = attacker.GetEncodedEHandle()
 		
 		//statement header
-		string logString = "|#Fight Recap:{" + GetUnixTimestamp() + "}| Fight ID:{" + id + "}| Victim: {" + victimUID + "};";
+		string logString = "|#Fight Recap:{" + GetUnixTimestamp() + "}| Fight ID:{" + id + "}| Victim: {" + victimUID + "};"
 		
 		// initialize vars..
-		float totalDamageToVictim = 0.0;
-		float timeWindow = deathtime;
-		bool bReportStats = true;
-		float fightStartTime = FLT_MAX;
-		float fightEndTime = 0.0; 
+		float totalDamageToVictim = 0.0
+		float timeWindow = deathtime
+		bool bReportStats = true
+		float fightStartTime = FLT_MAX
+		float fightEndTime = 0.0 
 		
 		//hardcoded jump & sueprglide grace for pre-shot start of fight actions
 		float jumpgrace = 1.2
 		float glidegrace = 2.2
 
 		// temp array to analyze data
-		array<DamageEvent> relevantDamageEvents;
+		array<DamageEvent> relevantDamageEvents
 
 		// initialize temporary attacker array totals. these indexes will all be aligned.
-		array<int> player_handles;
-		array<string> playerDISPLAYNAME;
-		array<float> playerTotalDamages;
-		array<int> playerTotalHits;
-		array<int> playerTotalHeadshots;
-		array<int> playerTotalJumps;
-		array<int> playerTotalShots;
-		array<int> playerSuperglides;
+		array<int> player_handles
+		array<string> playerDISPLAYNAME
+		array<float> playerTotalDamages
+		array<int> playerTotalHits
+		array<int> playerTotalHeadshots
+		array<int> playerTotalJumps
+		array<int> playerTotalShots
+		array<int> playerSuperglides
 
 		// initialize victim total vars
-		float victimTotalDamage = 0.0;
-		int victimTotalHits = 0;
-		int victimTotalHeadshots = 0;
-		int victimTotalJumps = 0;
-		int victimTotalShots = 0;
-		int victimSuperglides = 0;
+		float victimTotalDamage = 0.0
+		int victimTotalHits = 0
+		int victimTotalHeadshots = 0
+		int victimTotalJumps = 0
+		int victimTotalShots = 0
+		int victimSuperglides = 0
 		
 		//initialize attacker shared int vars (depending on current attacker these change during loops)
-		int attackerJumps = 0;
-		int attackerShots = 0;
-		int attackerSuperglides = 0;
-		
+		int attackerJumps = 0
+		int attackerShots = 0
+		int attackerSuperglides = 0
 		
 		// collect all DamageEvents on victim and calculate total damage
 		foreach ( DamageEvent event in allDamageEvents ) 
 		{
-			if ( event.victimHandle == victim_handle ) 
-			{	
-				totalDamageToVictim += event.damage;
-				relevantDamageEvents.append( event );
+			if ( event.victimHandle == victim_handle )
+			{
+				totalDamageToVictim += event.damage
+				relevantDamageEvents.append( event )
 				
 				#if DEVELOPER && DEBUGDMG
-					sqprint(format("Event timestamp: %d",event.actionTimestamp))
-					sqprint(format("Event lasthit: %d",event.lastHitTimestamp))
+					sqprint( format( "Tracker: Event timestamp: %d", event.actionTimestamp ) )
+					sqprint( format( "Tracker: Event lasthit: %d", event.lastHitTimestamp ) )
 				#endif
 				
 				if ( event.actionTimestamp <= fightStartTime ) 
 					fightStartTime = event.actionTimestamp
 				
 				if ( event.lastHitTimestamp >= fightEndTime ) 
-					fightEndTime = (event.lastHitTimestamp + 0.0500)		
+					fightEndTime = ( event.lastHitTimestamp + 0.0500 )		
 			}
 			#if DEVELOPER && DEBUGDMG
 				else 
 				{
-					sqprint(format("event.victimHandle does not equal event victim of: victim.p.handle. values: %d, %d", event.victimHandle, victim_handle ))
+					sqprint( format( "Tracker: event.victimHandle != victim_handle. values: %d, %d", event.victimHandle, victim_handle ) )
+					DEV_PrintDamageEvent( event )
 				}
 			#endif
 		}
@@ -2795,20 +2842,16 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 			file.bShouldShip = true
 			file.bCheckShip = false
 		}
-		else
-		{
-			//printw( "oh no ......." )
-		}
 		
-		if ( totalDamageToVictim <= 0 )
+		if ( totalDamageToVictim <= 0 || damageSourceID == eDamageSourceId.damagedef_despawn )
 		{
-			//printw( "zamn" )
-			Tracker_AddDamageEventsToDeleteQueue( attacker_handle, victim_handle )
+			RemoveDamageEvents( attacker_handle, victim_handle )
+			RemoveDamageEvents( victim_handle, attacker_handle ) // 2/16/2025
 			return
 		}
 		
 		#if DEVELOPER && DEBUGDMG
-			sqprint( format( "\n Fight start time: %d, end time: %d", fightStartTime, fightEndTime ) )
+			sqprint( format( "Tracker: Fight start time: %d, end time: %d", fightStartTime, fightEndTime ) )
 		#endif
 
 		//check bool first
@@ -2842,12 +2885,12 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 					int bulletsPerShot = GetBulletsPerShot(event.weaponSource);
 					int totalBulletsFired = event.hitCount * bulletsPerShot;
 					logString += format("Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s {%d/%d} bullets with weapon {%s} headshots: {%d};",
-										event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, event.bulletsHit, totalBulletsFired, DamageSourceIDToString(event.weaponSource), event.headshots);
+										event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, event.bulletsHit, totalBulletsFired, DamageSourceIDToString( event.weaponSource ), event.headshots )
 				} 
 				else 
 				{
 					logString += format("Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s with weapon {%s} headshots: {%d};",
-										event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, DamageSourceIDToString(event.weaponSource), event.headshots);
+										event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, DamageSourceIDToString( event.weaponSource ), event.headshots )
 				}
 				
 
@@ -2868,9 +2911,9 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 					playerIndex = player_handles.len() - 1;
 				}
 				
-					playerTotalDamages[playerIndex] += event.damage;
-					playerTotalHits[playerIndex] += event.hitCount;
-					playerTotalHeadshots[playerIndex] += event.headshots;
+					playerTotalDamages[playerIndex] += event.damage
+					playerTotalHits[playerIndex] += event.hitCount
+					playerTotalHeadshots[playerIndex] += event.headshots
 			}
 		}
 		/////////////////////////////////////////////////////////////////////////////////////////
@@ -2898,36 +2941,35 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 						{
 							int bulletsPerShot = GetBulletsPerShot(event.weaponSource)
 							int totalBulletsFired = event.hitCount * bulletsPerShot;
-							logString += format("Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s {%d/%d} bullets with weapon {%s} headshots: {%d};",
-												event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, event.bulletsHit, totalBulletsFired, DamageSourceIDToString(event.weaponSource), event.headshots)
+							logString += format( "Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s {%d/%d} bullets with weapon {%s} headshots: {%d};",
+												event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, event.bulletsHit, totalBulletsFired, DamageSourceIDToString( event.weaponSource ), event.headshots )
 						} 
 						else 
 						{
-							logString += format("Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s with weapon {%s} headshots: {%d};",
-												event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, DamageSourceIDToString(event.weaponSource), event.headshots)
+							logString += format( "Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s with weapon {%s} headshots: {%d};",
+												event.damage, victimUID, victimName, event.actionTimestamp, event.hitCount, mul, DamageSourceIDToString( event.weaponSource ), event.headshots )
 						}
 						
 						
 						//attackers jumps & total shots for fight
 						int playerIndex = player_handles.find( event.attackerHandle )
-						if (playerIndex == -1) 
+						if ( playerIndex == -1 ) 
 						{
 							// new attacker
 							player_handles.append( event.attackerHandle )
-							playerDISPLAYNAME.append(attackerName)
+							playerDISPLAYNAME.append( attackerName )
 							playerTotalDamages.append(0.0)
 							playerTotalHits.append(0)
 							playerTotalHeadshots.append(0)
 							playerTotalJumps.append(0)
 							playerTotalShots.append(0)
 							playerSuperglides.append(0)
-							playerIndex = player_handles.len() - 1;
+							playerIndex = player_handles.len() - 1
 						}
 						
-							playerTotalDamages[playerIndex] += event.damage;
-							playerTotalHits[playerIndex] += event.hitCount;
-							playerTotalHeadshots[playerIndex] += event.headshots;
-							
+						playerTotalDamages[ playerIndex ] += event.damage
+						playerTotalHits[ playerIndex ] += event.hitCount
+						playerTotalHeadshots[ playerIndex ] += event.headshots					
 					}
 				}
 			}
@@ -2942,26 +2984,26 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		{
 			if ( event.attackerHandle == victim_handle && ( file.gamemode_type_1v1 || deathtime - event.actionTimestamp <= timeWindow ) ) 
 			{					
-				victimTotalDamage += event.damage;
-				victimTotalHits += event.hitCount;
-				victimTotalHeadshots += event.headshots;	
+				victimTotalDamage += event.damage
+				victimTotalHits += event.hitCount
+				victimTotalHeadshots += event.headshots	
 				
 				
-				string mul = event.hitCount > 1 ? "s" : ""; //needs to go
+				string mul = event.hitCount > 1 ? "s" : "" //needs to go
 				
-				logString += "{" + victimUID + "}{" + string( victimName ) + "} dealt:"; //Note: don't confuse entity struct with damage event struct, victim entity is current attacker
+				logString += "{" + victimUID + "}{" + string( victimName ) + "} dealt:" //Note: don't confuse entity struct with damage event struct, victim entity is current attacker
 
 				if ( IsSpecialWeapon( event.weaponSource ) ) 
 				{
 					int bulletsPerShot = GetBulletsPerShot( event.weaponSource )
 					int totalBulletsFired = event.hitCount * bulletsPerShot;
 					logString += format("Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s {%d/%d} bullets with weapon {%s} headshots: {%d};",
-										event.damage, GetPlayerUIDFromHandle(event.victimHandle), GetPlayerNameFromHandle(event.victimHandle), event.actionTimestamp, event.hitCount, mul, event.bulletsHit, totalBulletsFired, DamageSourceIDToString(event.weaponSource), event.headshots);
+										event.damage, GetPlayerUIDFromHandle( event.victimHandle ), GetPlayerNameFromHandle( event.victimHandle ), event.actionTimestamp, event.hitCount, mul, event.bulletsHit, totalBulletsFired, DamageSourceIDToString( event.weaponSource ), event.headshots )
 				} 
 				else 
 				{
 					logString += format("Entry: {%.2f} damage ON {%s}{%s} at time {%.2f} in {%d} hit%s with weapon {%s} headshots: {%d};",
-										event.damage, GetPlayerUIDFromHandle(event.victimHandle), GetPlayerNameFromHandle(event.victimHandle), event.actionTimestamp, event.hitCount, mul, DamageSourceIDToString(event.weaponSource), event.headshots);
+										event.damage, GetPlayerUIDFromHandle( event.victimHandle ), GetPlayerNameFromHandle( event.victimHandle ), event.actionTimestamp, event.hitCount, mul, DamageSourceIDToString( event.weaponSource ), event.headshots )
 				}
 			}
 		}
@@ -2972,7 +3014,7 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		/////////////////////////////////////////////////////////////////////////////////////////
 		
 		//queue events for deletion immediately so they are not reused in the next fight
-		Tracker_AddDamageEventsToDeleteQueue( attacker_handle, victim_handle )
+		RemoveDamageEvents( attacker_handle, victim_handle )
 
 		/////////////////////////////////////////////////////////////////////////////////////////
 		//////////////////////////// 		attackers summary			/////////////////////////
@@ -2987,12 +3029,12 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 			attackerSuperglides = 0
 			attackerJumps = 0
 			//attackers jumps & total shots for fight
-			int attackerIndex = GetPlayerMetricsIndexByUID( GetPlayerUIDFromHandle(player_handles[i]) ); 
+			int attackerIndex = GetPlayerMetricsIndexByUID( GetPlayerUIDFromHandle( player_handles[i] ) )
 			
 			if ( attackerIndex != -1 ) 
 			{
-				attackerJumps = CountEventsWithinTimeframe(PlayerMetricsArray[attackerIndex].JumpTimestamps, fightStartTime - jumpgrace, fightEndTime)
-				attackerSuperglides = CountEventsWithinTimeframe(PlayerMetricsArray[attackerIndex].SuperglideTimestamps, fightStartTime - glidegrace, fightEndTime)
+				attackerJumps = CountEventsWithinTimeframe( PlayerMetricsArray[ attackerIndex ].JumpTimestamps, fightStartTime - jumpgrace, fightEndTime )
+				attackerSuperglides = CountEventsWithinTimeframe( PlayerMetricsArray[ attackerIndex ].SuperglideTimestamps, fightStartTime - glidegrace, fightEndTime )
 				
 				foreach ( weapon, timestamps in PlayerMetricsArray[ attackerIndex ].WeaponShotsTimestamps ) 
 				{	
@@ -3013,8 +3055,8 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 				playerTotalShots[i] += attackerShots
 			}
 		
-			logString += format("{%s}{%s} dealt:Recap: {%.2f} total damage in {%d} hits with weapon(s), headshots: {%d}, Total Jumps: {%d}, Total Shots: {%d}, Superglides: {%d};",
-								statPrintUID( GetPlayerUIDFromHandle( player_handles[i] ) ), playerDISPLAYNAME[i], playerTotalDamages[i], playerTotalHits[i], playerTotalHeadshots[i], attackerJumps, attackerShots, attackerSuperglides);
+			logString += format( "{%s}{%s} dealt:Recap: {%.2f} total damage in {%d} hits with weapon(s), headshots: {%d}, Total Jumps: {%d}, Total Shots: {%d}, Superglides: {%d};",
+								statPrintUID( GetPlayerUIDFromHandle( player_handles[i] ) ), playerDISPLAYNAME[i], playerTotalDamages[i], playerTotalHits[i], playerTotalHeadshots[i], attackerJumps, attackerShots, attackerSuperglides )
 								
 			//DEBUG
 			//sqprint(format("Total shots for fight: %d", attackerShots));
@@ -3063,28 +3105,28 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		
 		if ( victimIndex != -1 ) 
 		{
-			victimTotalJumps = CountEventsWithinTimeframe( PlayerMetricsArray[victimIndex].JumpTimestamps, fightStartTime - jumpgrace, fightEndTime )
-			victimSuperglides = CountEventsWithinTimeframe( PlayerMetricsArray[victimIndex].SuperglideTimestamps, fightStartTime - glidegrace, fightEndTime )
+			victimTotalJumps = CountEventsWithinTimeframe( PlayerMetricsArray[ victimIndex ].JumpTimestamps, fightStartTime - jumpgrace, fightEndTime )
+			victimSuperglides = CountEventsWithinTimeframe( PlayerMetricsArray[ victimIndex ].SuperglideTimestamps, fightStartTime - glidegrace, fightEndTime )
 			
-			foreach ( weapon, timestamps in PlayerMetricsArray[victimIndex].WeaponShotsTimestamps ) 
+			foreach ( weapon, timestamps in PlayerMetricsArray[ victimIndex ].WeaponShotsTimestamps ) 
 			{	
 				int event_hitcount = CountEventsWithinTimeframe( timestamps, fightStartTime, fightEndTime )
 				
 				if( IsSpecialWeapon( weapon ) )
 				{
-					int event_bullets_per_shot = GetBulletsPerShot(weapon)
-					int total_event_shots = event_hitcount * event_bullets_per_shot;
-					victimTotalShots += total_event_shots;
+					int event_bullets_per_shot = GetBulletsPerShot( weapon )
+					int total_event_shots = event_hitcount * event_bullets_per_shot
+					victimTotalShots += total_event_shots
 				}
 				else
 				{
-					victimTotalShots += event_hitcount;
+					victimTotalShots += event_hitcount
 				}	
 			}
 		}
 		
 		logString += format("{%s}{%s} dealt:Recap: {%.2f} total damage in {%d} hits with weapon(s), headshots: {%d}, Total Jumps: {%d}, Total Shots: {%d}, Superglides: {%d};",
-                    victimUID, victimName, victimTotalDamage, victimTotalHits, victimTotalHeadshots, victimTotalJumps, victimTotalShots, victimSuperglides);
+                    victimUID, victimName, victimTotalDamage, victimTotalHits, victimTotalHeadshots, victimTotalJumps, victimTotalShots, victimSuperglides )
 			
 					AddToPlayerDamage( victimUID, victimTotalDamage )
 			
@@ -3163,7 +3205,7 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 				if( potentialName != null )
 					attName = expect string( potentialName )
 				else 
-					attName = "NULL_DEBUGIT";
+					attName = "NULL_DEBUGIT"
 				
 				a_OID = attName
 			}
@@ -3191,7 +3233,7 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 			int pA = pingAttacker.tointeger()
 			int pV = pingVictim.tointeger()
 			int currentTimeStamp = GetUnixTimestamp()
-            logString += format("\n^^,%s,1,%d,%d,%s,%s,%s,%i,%d,%s,%d,%d,%s,%s,%i,%i,%i\n&&,%s,%d,%s,%d,%s,%s,%i,%d,%s,%d,%d,%s,%s,%s,%i,%i,%i\n",
+            logString += format( "\n^^,%s,1,%d,%d,%s,%s,%s,%i,%d,%s,%d,%d,%s,%s,%i,%i,%i\n&&,%s,%d,%s,%d,%s,%s,%i,%d,%s,%d,%d,%s,%s,%s,%i,%i,%i\n",
                 a_OID, 					//0
                 GetNumTeamsRemaining(), //2
                 currentTimeStamp, 	//3
@@ -3225,7 +3267,7 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 				iAttackerScore,		//14
 				iVictimScore,		//15
 				isChal 				//16
-            );
+            )
 
 			if ( bReportStats && file.bSafeLog )
 			{
@@ -3236,28 +3278,7 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 				#endif
 			}
     }//EndFight()
-
-	//TODO redesign delete thread (maybe again)
-	void function EventManager() 
-	{		
-		if ( DeleteEventTaskList.len() > 0 )
-		{				
-			RemoveEvents
-			( 
-				DeleteEventTaskList[0].victim_handle, 
-				DeleteEventTaskList[0].attacker_handle, 
-				DeleteEventTaskList[0].fightEndTime
-			)	
-			DeleteEventTaskList.remove(0)		
-		}
-	}
 	
-	void function Tracker_AddEventTask( DeleteEvents Event ) 
-	{
-		DeleteEventTaskList.append( Event )
-		EventManager()
-	}
-
 
 	void function RemoveEvents( int dead_victim_handle, int killer_attacker_handle, float fightEndTime ) 
 	{
@@ -3265,9 +3286,15 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 			int removed = 0		
 		#endif
 			
-		DamageEvent nullevent;		
-		allDamageEventsMap[ eventID( killer_attacker_handle, dead_victim_handle ) ] <- nullevent
-		allDamageEventsMap[ eventID( dead_victim_handle, killer_attacker_handle ) ] <- nullevent
+		DamageEvent nullevent
+		int killerOnVictimEventID = eventID( killer_attacker_handle, dead_victim_handle )
+		int victimOnKillerEventID = eventID( dead_victim_handle, killer_attacker_handle )
+		
+		if( killerOnVictimEventID in allDamageEventsMap ) 
+			allDamageEventsMap[ killerOnVictimEventID ] = nullevent
+			
+		if( victimOnKillerEventID in allDamageEventsMap )
+			allDamageEventsMap[ victimOnKillerEventID ] = nullevent
   
 		for ( int i = allDamageEvents.len() - 1; i >= 0; --i ) 
 		{
@@ -3294,11 +3321,10 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		}
 
 		#if DEVELOPER
-				foreach (event in allDamageEvents) 
-				{
-					sqprint( format( "Remaining event handle: dealer: %d, reciever: %d ", event.attackerHandle, event.victimHandle ) )
-				}
-			sqprint( format( "Total remaining events: %d, Total removed: %d", allDamageEvents.len(), removed ) )
+			foreach ( event in allDamageEvents ) 
+				sqprint( format( "Tracker: Remaining event handle: dealer: %d, reciever: %d ", event.attackerHandle, event.victimHandle ) )
+					
+			sqprint( format( "Tracker: Total remaining events: %d, Total removed: %d", allDamageEvents.len(), removed ) )
 		#endif
 	}
 	
@@ -3401,7 +3427,7 @@ void function Tracker_HandleDamage( DamageEvent event, entity attacker, int weap
 	if ( currentHealth > 0 && damageAmount > currentHealth ) 
 	{
 		#if DEVELOPER && DEBUGDMG
-			printt("Damageamount:", damageAmount, ";currenthealth:", currentHealth )
+			printt("Tracker: CapDmg - Damageamount:", damageAmount, ";currenthealth:", currentHealth )
 		#endif
 		
 		damageAmount = currentHealth;
@@ -3426,13 +3452,13 @@ void function Tracker_HandleDamage( DamageEvent event, entity attacker, int weap
 		{
 			if ( event.lastHitTimestamp == 0 || ( currentTime - event.lastHitTimestamp ) * 1000 > 100 ) 
 			{
-				event.hitCount++;
+				event.hitCount++
 				multiple = true
 			}
 		} 
 		else
 		{
-			event.hitCount++;
+			event.hitCount++
 		}
 	//}
 
@@ -3457,10 +3483,11 @@ void function Tracker_HandleDamage( DamageEvent event, entity attacker, int weap
 			event.isNew = true
 	}
 
-	//sqprint(format("Handling damage for an event with isNew: %s and existing damage: %.2f\n", event.isNew ? "true" : "false", event.damage));
+	//sqprint( format( "Tracker: Handling damage for an event with isNew: %s and existing damage: %.2f\n", event.isNew ? "true" : "false", event.damage ) )
 }
 
-const array<int> trackedEventDamageSource = [
+const array<int> trackedEventDamageSource = 
+[
 	eDamageSourceId.deathField,
 	eDamageSourceId.fall
 ]
@@ -3472,7 +3499,7 @@ int function eventID( int attackerHandle, int victimHandle )
 
 DamageEvent function Tracker_GetRecentDamageEvent( int eventID )
 {
-	DamageEvent event;
+	DamageEvent event
 	
 	if( eventID in allDamageEventsMap )
 		return allDamageEventsMap[ eventID ]
@@ -3484,6 +3511,47 @@ DamageEvent function Tracker_GetRecentDamageEvent( int eventID )
 	var function DEV_DamageInfo()
 	{
 		return file.damageInfo
+	}
+	
+	void function DEV_PrintDamageEvent( DamageEvent event )
+	{
+		Warning( "Tracker: DEV_PrintDamageEvent" )
+		string weaponOrderString = "[\n"
+		foreach( weaponSource in event.weaponOrder )
+			weaponOrderString += format( "     %d,\n", weaponSource )
+		weaponOrderString += "]\n"
+		
+		print
+		(
+			format 
+			(
+					"\n weaponSource:%d \n attackerHandle:%d \n victimHandle:%d \n hitCount:%d \n bulletsHit:%.2f \n damage:%.3f \n headshots:%d \n actionTimestamp:%.7f \n lastWeaponSource:%d \n lastHitTimestamp:%.3f \n isNew:%s \n shotIdentifier:%.7f \n isValid:%s \n weaponOrderString:\n%s ",
+					event.weaponSource,
+					event.attackerHandle,
+					event.victimHandle,	
+					event.hitCount,
+					event.bulletsHit,
+					event.damage,
+					event.headshots,
+					event.actionTimestamp,
+					event.lastWeaponSource,
+					event.lastHitTimestamp,
+					string( event.isNew ),
+					event.shotIdentifier,
+					string( event.isValid ),
+					weaponOrderString
+			)
+		)
+	}
+	
+	void function DEV_PrintDamageMap()
+	{
+		printt( "Tracker: DEV_PrintDamageEvent length:", allDamageEventsMap.len() )
+		foreach( int identifier, DamageEvent event in allDamageEventsMap )
+		{
+			printt( "Tracker: event identifier:", identifier )
+			DEV_PrintDamageEvent( event )
+		}
 	}
 #endif
 
@@ -3516,10 +3584,14 @@ void function Tracker_OnPlayerDamaged( entity victim, var damageInfo )
     if ( weaponSource == eDamageSourceId.bleedout || weaponSource == eDamageSourceId.human_execution )
 		return
 
+	if( weaponSource != eDamageSourceId.damagedef_despawn && attacker.e.lastAttackedEnt != victim ) //(mk): reads are faster than writes
+		attacker.e.lastAttackedEnt = victim
+
     //float damageAmount = scalar > 0 ? DamageInfo_GetDamage(damageInfo) * scalar : DamageInfo_GetDamage(damageInfo) ;
 	float damageAmount = DamageInfo_GetDamage( damageInfo )
 
 	#if DEVELOPER && DEBUGDMG
+		print( "Tracker_OnPlayerDamaged" )
 		DebugDamageInfo( victim, damageInfo )
 		printt("InflictorOwner", InflictorOwner( DamageInfo_GetAttacker( damageInfo ) ) )
 		printt("DamageInfo_GetWeapon: ", DamageInfo_GetWeapon(damageInfo) )	 
@@ -3528,7 +3600,6 @@ void function Tracker_OnPlayerDamaged( entity victim, var damageInfo )
 		printt("damageAmount: ", damageAmount)
 		printt("DamageInfo_GetWeapon: ", DamageInfo_GetWeapon(damageInfo) )
 		printt("weaponSource: ", weaponSource ) 
-	
 	#endif
 
 	int victimHandle = Tracker_FetchHandle( victim )
@@ -3577,13 +3648,13 @@ void function Tracker_OnPlayerDamaged( entity victim, var damageInfo )
 	DamageEvent existingEvent = Tracker_GetRecentDamageEvent( eventID )
 
 	#if DEVELOPER && DEBUGDMG
-		sqprint(format("\n\n\n Event exists: %s \n\n\n", existingEvent.isValid ? "true" : "false"))
+		print( format("\n\n\n Event exists: %s \n\n\n", existingEvent.isValid ? "true" : "false") )
 	#endif
 	
     if ( existingEvent.isValid ) //event exists
 	{
         // last weapon used from the existing event
-        int lastWeaponSource = existingEvent.weaponOrder[existingEvent.weaponOrder.len() - 1]
+        int lastWeaponSource = existingEvent.weaponOrder[ existingEvent.weaponOrder.len() - 1 ]
 
         // check if weapon changed or new shot from special weapon (new event block)
         if ( lastWeaponSource != weaponSource || ( IsSpecialWeapon( weaponSource ) && existingEvent.shotIdentifier != shotIdentifier ) ) 
@@ -3593,11 +3664,11 @@ void function Tracker_OnPlayerDamaged( entity victim, var damageInfo )
             newEvent.shotIdentifier = shotIdentifier
             Tracker_HandleDamage( newEvent, attacker, weaponSource, damageAmount, damageInfo, victim )
             allDamageEvents.append( newEvent )
-        } 
+        }
 		else 
 		{
             // update existing damage event
-            existingEvent.isNew = false;
+            existingEvent.isNew = false
             existingEvent.weaponOrder.append(weaponSource)
             Tracker_HandleDamage( existingEvent, attacker, weaponSource, damageAmount, damageInfo, victim )
         }
@@ -3614,12 +3685,21 @@ void function Tracker_OnPlayerDamaged( entity victim, var damageInfo )
 
     
 	#if DEVELOPER && DEBUGDMG
-		sqprint( "Current Damage Events: \n" )
-		
+		printt( "Tracker: Current Damage Events:", allDamageEvents.len(), "\n" )	
 		foreach( DamageEvent event in allDamageEvents ) 
-			sqprint(format("Attacker: %d, Victim: %d, Damage: %.2f, Time: %.2f, shots: %d\n", event.attackerHandle, event.victimHandle, event.damage, event.actionTimestamp, event.hitCount ))
+			print
+			( 
+				format
+				( 
+					"Attacker: %d, Victim: %d, Damage: %.2f, EventBlockStartTime: %.2f, shots: %d \n", 
+					event.attackerHandle, 
+					event.victimHandle, 
+					event.damage, 
+					event.actionTimestamp, 
+					event.hitCount 
+				)
+			)
 	#endif
-	
 }
 
 int function Tracker_FetchHandle( entity ent )
@@ -3633,7 +3713,7 @@ int function Tracker_FetchHandle( entity ent )
 	if( ent.IsNPC() )
 		return ent.GetEncodedEHandle()
 	
-	return 0
+	return 0 //worldspawn
 }
 
 void function __TrackerStatsHook_Damage( entity victim, var damageInfo )
@@ -4913,6 +4993,54 @@ void function DEV_WriteAllTrackerErrors()
 
 void function PlayerDisconnectedCallback( entity player ) 
 {	
+	SetPlayerLeftFlag( player )
+	
+	int playerHandle 				= player.p.handle 
+	entity attackedEnt 				= player.e.lastAttackedEnt
+	entity lastAttacker 			= player.e.lastAttacker
+	
+	int attackedEntHandle
+	int lastAttackerHandle
+	
+	if( IsValid( attackedEnt ) && attackedEnt.IsPlayer() )
+		attackedEntHandle = attackedEnt.p.handle
+
+	if( !IsValid( lastAttacker ) )
+		lastAttacker = player.p.lastOpponent
+		
+	if( IsValid( lastAttacker ) )
+		lastAttackerHandle = lastAttacker.GetEncodedEHandle()
+
+	
+	//only add damage events to queue if 1v1 type gamemode ( only p-v-p )
+	if( file.gamemode_type_1v1 )
+	{
+		RemoveDamageEvents( playerHandle, attackedEntHandle )
+		RemoveDamageEvents( attackedEntHandle, playerHandle  )
+		
+		RemoveDamageEvents( playerHandle, lastAttackerHandle )
+		RemoveDamageEvents( lastAttackerHandle, playerHandle  )
+	}
+	
+	//clear recent damage(block) event from map always
+	int playerAttackerOnVictimID = eventID( playerHandle, attackedEntHandle )
+	int victimOnPlayerAttackerID = eventID( attackedEntHandle, playerHandle )
+	
+	int attackerOnPlayerID = eventID( playerHandle, lastAttackerHandle )
+	int playerOnAttackerID = eventID( lastAttackerHandle, playerHandle )
+
+	if( playerAttackerOnVictimID in allDamageEventsMap )
+		delete allDamageEventsMap[ playerAttackerOnVictimID ]
+		
+	if( victimOnPlayerAttackerID in allDamageEventsMap )
+		delete allDamageEventsMap[ victimOnPlayerAttackerID ]
+		
+	if( attackerOnPlayerID in allDamageEventsMap )
+		delete allDamageEventsMap[ attackerOnPlayerID ]
+		
+	if( playerOnAttackerID in allDamageEventsMap )
+		delete allDamageEventsMap[ playerOnAttackerID ]
+		
     string reason = "Disconnection"
     PIN_PlayerLeft( player, reason )
 }
@@ -5119,19 +5247,17 @@ void function PIN_PlayerLeft( entity player, string reason )
 	string playerName = player.GetPlayerName()
 	string OID = player.GetPlatformUID()
 	
-	SetPlayerLeftFlag( player )
-	
 	//string message = format("%s disconnected ", pname )
 	//sqprint(message)
-
-	if ( file.LogOn && file.bSafeLog ) 
+	
+	if ( file.LogOn && file.bSafeLog )
 	{
 		if ( isLogging__internal() ) 
 		{
 			if ( file.update_discord_player_counts )
 			{
 				string count = ( GetNumHumanPlayers() - 1 ).tostring()
-				thread PlayerCounts( "Left", playerName, OID, count )		
+				PlayerCounts( "Left", playerName, OID, count )		
 			}
 			
 			LogEvent__internal
@@ -5188,9 +5314,7 @@ void function PIN_PlayerRevived( entity injured, entity healer )
 void function PIN_PlayerKilled( entity victim, entity attacker, var damageInfo )
 {	
 	if ( file.LogOn && isLogging__internal() && IsValid( victim ) && victim.IsPlayer() )
-	{
 		thread __EndFight( victim, attacker, damageInfo, Time() )
-	}
 }
 
 void function Tracker_EndFight( entity victim, entity attacker, var damageInfo )
@@ -5664,8 +5788,8 @@ void function StatFailed( entity player )
 		void function InitializeLogThread__internal(){}
 		void function LogEvent__internal( string data, bool encrypt ){}
 		void function stopLogging__internal(){}	
-		void function sqprint( string data ){ printt(data) }
-		void function sqerror( string data ){ printt(data) }	
+		void function sqprint( string data ){ print(data) }
+		void function sqerror( string data ){ print(data) }	
 		void function _STATSHOOK_UpdatePlayerCount__internal(){}
 		void function _STATSHOOK_EndOfMatch__internal(){}
 		void function LoadSyncData__internal( string UID ){}

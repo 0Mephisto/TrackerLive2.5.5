@@ -423,7 +423,7 @@ void function Gamemode1v1_SetPlayerGamestate( entity player, int state = 0 )
 			callbackFunc( player, state )
 	}
 	#if DEVELOPER
-		else 
+		else if( !IsCurrentState( player, e1v1State.SEQUENCE ) )
 		{
 			DumpStack()
 			mAssert( false, format( "State was already set to '%s' for %s", DEV_GetGamestateRef( state ), string( player ) ) )
@@ -1108,7 +1108,7 @@ void function Gamemode1v1_ForceRest( entity player )
 	if( !file.bRestEnabled )
 		return
 	
-	if( !IsValid( player ) ) //|| !IsAlive(player) )
+	if( !IsValid( player ) ) // || IsCurrentState( player, e1v1State.SEQUENCE ) //potential fix in future.
 		return
 
 	int playerHandle = player.p.handle
@@ -3784,7 +3784,7 @@ void function soloModeThread( LocPair waitingRoomLocation )
 
 			//timeout preferred matchmaking 
 			if ( playerInWaitingStruct.waitingTime < Time() && !playerInWaitingStruct.IsTimeOut && IsValid( playerInWaitingStruct.player ) )
-				playerInWaitingStruct.IsTimeOut = true;
+				playerInWaitingStruct.IsTimeOut = true
 		}
 
 		//遍历游玩队列
@@ -3802,9 +3802,7 @@ void function soloModeThread( LocPair waitingRoomLocation )
 			
 			if ( !removed && group.IsFinished ) //this round has been finished //
 			{
-				SetIsUsedBoolForRealmSlot( group.slotIndex, false )
-				HandleOpponentInfo( group )
-									
+				SetIsUsedBoolForRealmSlot( group.slotIndex, false )									
 				destroyRingsForGroup( group )
 				
 				bool player1Rested = false
@@ -3858,26 +3856,22 @@ void function soloModeThread( LocPair waitingRoomLocation )
 					_CleanupPlayerEntities( group.player1 )
 					_CleanupPlayerEntities( group.player2 )
 					
-					if ( TryProcessRestRequest( group.player1 ) )
-					{	
-						nowep = true
-					}
-					else 
+					//This block is important to prevent exploits
 					{				
-						thread respawnInSoloMode( group.player1, p1 )
-					}				
-					
-					if ( !nowep && TryProcessRestRequest( group.player2 ) )
-					{
-						nowep = true
+						if ( TryProcessRestRequest( group.player1 ) )	
+							nowep = true
+						else 				
+							thread respawnInSoloMode( group.player1, p1 )				
+						
+						//if no wep is true, player 1 rested, which handles player 2's state.
+						if ( !nowep && TryProcessRestRequest( group.player2 ) ) 
+							nowep = true
+						else if ( !nowep )	
+							thread respawnInSoloMode( group.player2, p2 )
+						
+						if( !nowep ) //don't give this group weapons if either player rested.				
+							GiveWeaponsToGroup( [ group.player1, group.player2 ], group )	
 					}
-					else if ( !nowep )
-					{			
-						thread respawnInSoloMode( group.player2, p2 )
-					}
-					
-					if( !nowep )				
-						GiveWeaponsToGroup( [ group.player1, group.player2 ], group )						
 				}//keep
 			}
 			
@@ -3886,9 +3880,9 @@ void function soloModeThread( LocPair waitingRoomLocation )
 				//printt("solo player quit!!!!!")
 				if ( !removed && IsValid( group.player1 ) ) 
 				{
-					#if TRACKER 
-						Tracker_AddDamageEventsToDeleteQueue( group.player1_handle, group.player2_handle )
-					#endif
+					// #if TRACKER //moved to tracker file.
+						// Tracker_AddDamageEventsToDeleteQueue( group.player1_handle, group.player2_handle )
+					// #endif
 					
 					if( !TryProcessRestRequest( group.player1 ) )
 					{					
@@ -3899,9 +3893,9 @@ void function soloModeThread( LocPair waitingRoomLocation )
 
 				if ( !removed && IsValid( group.player2 ) ) 
 				{
-					#if TRACKER
-						Tracker_AddDamageEventsToDeleteQueue( group.player2_handle, group.player1_handle )
-					#endif 
+					// #if TRACKER //moved to tracker file.
+						// Tracker_AddDamageEventsToDeleteQueue( group.player2_handle, group.player1_handle )
+					// #endif
 					
 					if( !TryProcessRestRequest( group.player2 ) )
 					{						
@@ -4406,6 +4400,7 @@ void function InputWatchdog( entity player, entity opponent, soloGroupStruct gro
 
 void function GiveWeaponsToGroup( array<entity> players, soloGroupStruct groupRef )
 {
+	HandleOpponentInfo( groupRef )
 	//printw( "giving weapons for players: ", players[0], players[1] )
 	thread function () : ( players, groupRef )
 	{	
@@ -4418,7 +4413,6 @@ void function GiveWeaponsToGroup( array<entity> players, soloGroupStruct groupRe
 			DecideToggleCollision_Rest( player, true )
 			Gamemode1v1_SetPlayerGamestate( player, e1v1State.MATCHING )
 		}
-
 		//(mk): could set up end signals on players for OnDestroy. 
 		wait 0.2
 		
@@ -4645,6 +4639,8 @@ void function ForceAllRoundsToFinish_solomode()
 		if( !IsValid( player ) ) 
 			continue
 		
+		Gamemode1v1_SetPlayerGamestate( player, e1v1State.SEQUENCE )
+		
 		try
 		{
 			if( player.p.isSpectating )
@@ -4672,7 +4668,6 @@ void function ForceAllRoundsToFinish_solomode()
 		if( isPlayerInWaitingList( player ) )
 			continue
 		
-		Gamemode1v1_SetPlayerGamestate( player, e1v1State.SEQUENCE )
 		soloModePlayerToWaitingList( player )
 		FS_ClearRealmsAndAddPlayerToAllRealms( player )
 	}
