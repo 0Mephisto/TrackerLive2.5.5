@@ -1685,7 +1685,7 @@ void function PIN_Init()
 	if ( file.LogOn )
 	{
 		string message = format( "R5R.DEV metrics initialized at:  %d ", GetUnixTimestamp() )
-		print( message )
+		printt( message )
 		
 		AddCallback_OnClientDisconnected( PlayerDisconnectedCallback )		
 		AddCallback_OnWeaponAttack( WeaponAttack )
@@ -2863,7 +2863,7 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 		// log DamageEvents that fall within the time window if damages are less than full health
 		
 		foreach ( int eventIndex, DamageEvent event in relevantDamageEvents ) 
-		{
+		{	
 			if ( file.gamemode_type_1v1 || ( deathtime - event.actionTimestamp <= timeWindow ) ) 
 			{			
 				attackerUID = statPrintUID( GetPlayerUIDFromHandle( event.attackerHandle ) )
@@ -3303,7 +3303,7 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 						removed++;
 					#endif 
 				}
-			}
+			} 
 			else
 			{
 				if ( Time() - fightEndTime > MAX_FIGHT_HISTORY_TIME || allDamageEvents[i].victimHandle == dead_victim_handle ) 
@@ -4984,6 +4984,9 @@ void function DEV_WriteAllTrackerErrors()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+
+
+
 void function PlayerDisconnectedCallback( entity player ) 
 {	
 	SetPlayerLeftFlag( player )
@@ -5016,20 +5019,23 @@ void function PlayerDisconnectedCallback( entity player )
 	}
 	
 	//clear recent damage(block) event from map always
-	array<int> idsToDelete = 
-	[
-		eventID( playerHandle, attackedEntHandle ),
-		eventID( attackedEntHandle, playerHandle ),
-		eventID( playerHandle, lastAttackerHandle ),
-		eventID( lastAttackerHandle, playerHandle )
-	]
+	int playerAttackerOnVictimID = eventID( playerHandle, attackedEntHandle )
+	int victimOnPlayerAttackerID = eventID( attackedEntHandle, playerHandle )
 	
-	array<int> uniqueIDs = ArrayUniqueInt( idsToDelete )
-	foreach( id in uniqueIDs ) 
-	{
-		if( id in allDamageEventsMap )
-			delete allDamageEventsMap[ id ]
-	}
+	int attackerOnPlayerID = eventID( playerHandle, lastAttackerHandle )
+	int playerOnAttackerID = eventID( lastAttackerHandle, playerHandle )
+
+	if( playerAttackerOnVictimID in allDamageEventsMap )
+		delete allDamageEventsMap[ playerAttackerOnVictimID ]
+		
+	if( victimOnPlayerAttackerID in allDamageEventsMap )
+		delete allDamageEventsMap[ victimOnPlayerAttackerID ]
+		
+	if( attackerOnPlayerID in allDamageEventsMap )
+		delete allDamageEventsMap[ attackerOnPlayerID ]
+		
+	if( playerOnAttackerID in allDamageEventsMap )
+		delete allDamageEventsMap[ playerOnAttackerID ]
 		
     string reason = "Disconnection"
     PIN_PlayerLeft( player, reason )

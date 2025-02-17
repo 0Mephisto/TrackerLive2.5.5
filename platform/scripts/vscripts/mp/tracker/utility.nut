@@ -39,7 +39,6 @@ global function TP
 global function Tracker_DetermineNextMap
 global function Tracker_GotoNextMap
 global function PrepareForJson
-global function ArrayUniqueInt
 
 #if TRACKER && HAS_TRACKER_DLL
 	global function PrintMatchIDtoAll
@@ -2552,21 +2551,4 @@ string function PrepareForJson( string data )
 	}
 	
     return data
-}
-
-array<int> function ArrayUniqueInt( array<int> arr )
-{
-	array<int> newArr
-	
-	foreach( item in arr )
-	{
-		if( !newArr.contains( item ) )
-			newArr.append( item )
-		#if DEVELOPER 
-		else
-			printw( "ArrayUniqueInt: item", item, "was a duplicate and omitted" )
-		#endif			
-	}
-	
-	return newArr
 }
