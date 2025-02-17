@@ -5389,34 +5389,39 @@ void function Gamemode1v1_OnPlayerDied( entity victim, entity attacker, var dama
 	victim.SetPlayerNetEnt( "FSDM_1v1_Enemy", null )
 
 	if( IsValid( attacker ) )
-		victim.p.lastKiller = attacker
-
-	if( isPlayerInWaitingList( victim ) )
 	{
-		LocPair waitingRoomLocation = getWaitingRoomLocation()
-		
-		if( !IsAlive( victim ) )
-		{
-			Gamemode1v1_SetPlayerGamestate( victim, e1v1State.SEQUENCE )
-			DecideRespawnPlayer( victim, false )
-		}
-		
-		if ( !IsValid( waitingRoomLocation ) )
-		{//(mk): this should never be hit, Maki had it checked. 
-			mAssert( false, "Waiting room location was invalid." )
-			return
-		}
-			
-		ClearInvincible( victim )
-		maki_tp_player( victim, waitingRoomLocation )
-			
-		return
+		victim.p.lastKiller = attacker
+		HolsterAndDisableWeapons_Raw( attacker )
 	}
+	
+	HolsterAndDisableWeapons_Raw( victim )
+
+	// if( isPlayerInWaitingList( victim ) )
+	// {
+		// LocPair waitingRoomLocation = getWaitingRoomLocation()
+		
+		// if( !IsAlive( victim ) )
+		// {
+			// Gamemode1v1_SetPlayerGamestate( victim, e1v1State.SEQUENCE )
+			// DecideRespawnPlayer( victim, false )
+		// }
+		
+		// if ( !IsValid( waitingRoomLocation ) )
+		// {//(mk): this should never be hit, Maki had it checked. 
+			// mAssert( false, "Waiting room location was invalid." )
+			// return
+		// }
+			
+		// ClearInvincible( victim )
+		// maki_tp_player( victim, waitingRoomLocation )
+			
+		// return
+	// }
 	
 	if( !isScenariosMode() )
 		HandleGroupIsFinished( victim ) //, damageInfo )
-
-	ClearInvincible( victim )
+		
+	ClearInvincible( victim ) //(mk): why? MakeInvincible is never called, however raw entity method SetInvulerable is called in fsdm _HandleRespawn() [1v1 is separate] and StartRound(). Leaving for now
 	return
 }
 
