@@ -4301,6 +4301,7 @@ void function soloModeThread( LocPair waitingRoomLocation )
 			}
 		}
 		
+		deletions = ArrayUniqueInt( deletions )
 		if( deletions.len() > 0 )
 		{
 			foreach( playerKey in deletions ) 
