@@ -2379,8 +2379,7 @@ void function GiveRandomPrimaryWeaponHalo(entity player)
 				// Weapons.removebyvalue(weapon)
 	// }
 	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
-
+	ValidateBlacklistedWeapons( Weapons )
 	__GiveWeapon( player, Weapons, slot, RandomIntRange( 0, Weapons.len() ) )
 }
 
@@ -2404,8 +2403,7 @@ void function GiveRandomSecondaryWeaponHalo(entity player)
 				// Weapons.removebyvalue(weapon)
 	// }
 	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
-
+	ValidateBlacklistedWeapons( Weapons )
 	__GiveWeapon( player, Weapons, slot, RandomIntRange( 0, Weapons.len() ) )
 }
 
@@ -2534,7 +2532,7 @@ void function PrimaryWeaponMetagame_Init()
 			]
 	}
 
-	Weapons = ValidateBlacklistedWeapons( Weapons )
+	ValidateBlacklistedWeapons( Weapons )
 	
 	if( Weapons.len() == 0 )
 		mAssert( false, "No valid weapons remain in secondary list. If this is intentional, comment this assert" )
@@ -2575,7 +2573,7 @@ void function SecondaryWeaponMetagame_Init()
 			]
 	}
 	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
+	ValidateBlacklistedWeapons( Weapons )
 	
 	if( Weapons.len() == 0 )
 		mAssert( false, "No valid weapons remain in secondary list. If this is intentional, comment this assert" )
@@ -2611,8 +2609,7 @@ void function GiveRandomPrimaryWeapon(entity player)
 				// Weapons.removebyvalue(weapon)
 	// }
 	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
-
+	ValidateBlacklistedWeapons( Weapons )
 	__GiveWeapon( player, Weapons, slot, RandomIntRange( 0, Weapons.len() ) )
 }
 
@@ -2638,8 +2635,7 @@ void function GiveRandomSecondaryWeapon( entity player)
 				// Weapons.removebyvalue(weapon)
 	// }
 	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
-
+	ValidateBlacklistedWeapons( Weapons )
 	__GiveWeapon( player, Weapons, slot, RandomIntRange( 0, Weapons.len() ) )
 }
 
@@ -2691,8 +2687,7 @@ void function GiveActualGungameWeapon(int index, entity player)
 				// Weapons.removebyvalue(weapon)
 	// }
 	
-	Weapons = ValidateBlacklistedWeapons( Weapons )
-
+	ValidateBlacklistedWeapons( Weapons )
 	__GiveWeapon( player, Weapons, slot, index, true)
 }
 
