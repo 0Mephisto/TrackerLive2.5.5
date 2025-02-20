@@ -489,6 +489,7 @@ struct //Todo: move appropriate to tracker.var
 	string restricted_join_message = "You are able to play on this restricted server."
 	string restricted_whitelist_message = "You are whitelisted to play on this restricted server."
 	string restricted_admin_message = "You are an admin."
+	bool restricted_whitelist_only
 	
 	table<int,float> DamagePerBullet = {}
 	table<int,int> SpecialWeaponsBulletsPerShot = {}
@@ -1806,6 +1807,7 @@ void function Tracker_SettingsInit()
 	file.restricted_join_message 			= GetCurrentPlaylistVarString( "restricted_join_message", "You are able to play on this restricted server." )
 	file.restricted_whitelist_message 		= GetCurrentPlaylistVarString( "restricted_whitelist_message", "You are whitelisted to play on this restricted server." )
 	file.restricted_admin_message 			= GetCurrentPlaylistVarString( "restricted_admin_message", "You are an admin." )
+	file.restricted_whitelist_only			= GetCurrentPlaylistVarBool( "restricted_whitelist_only", false )
 
 	//motd
 	file.bUseOnlineMOTD 					= GetCurrentPlaylistVarBool( "use_online_motd", false )
@@ -2117,6 +2119,9 @@ void function Init_NewGame()
 		if ( GetAdminList().contains( player_UID ) )
 			return 7
 		
+		if( file.restricted_whitelist_only )
+			return -1
+		
 		if ( player.p.season_score < Tracker_GetQueryInt( "restricted_rank" ) )
 			return 6
 		
@@ -2162,6 +2167,9 @@ void function Init_NewGame()
 				
 			case 1:
 				return "Your play time does not meet this server's required minimum play time of: " + PlayTime( file.restricted_playtime ) + "\n Your playtime: " + PlayTime( player.p.season_playtime ) + "\n\n You need to play for at least: " + PlayTime(( file.restricted_playtime - player.p.season_playtime)) + " more time.";
+			
+			case -1:
+				return "This server has Private mode enabled. Please contact the admin to be added to the whitelist."
 			
 			default:
 				return "Error 404";
