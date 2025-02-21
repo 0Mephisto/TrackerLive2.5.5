@@ -2196,6 +2196,10 @@ void function Init_NewGame()
 		EndSignal( player, "OnDisconnected", "OnDestroy" )
 		CommandsEnabled( player, false )
 		
+		if( Gamemode() == eGamemodes.SURVIVAL || Playlist() == ePlaylists.fs_scenarios )
+			wait 1 //allow setup callbacks to run
+		
+		
 		Gamemode1v1_ForceRest( player )
 		
 		if( IsValid( player ) && !GetServerVar( "batch_fetch_complete" ) )
