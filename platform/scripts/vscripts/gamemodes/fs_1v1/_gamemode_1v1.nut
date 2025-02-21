@@ -694,8 +694,7 @@ void function ValidateWeaponList( string weaponList, string weaponListContinue, 
 
         try
         {
-			outputArrayByRef = StringToArray( concatenated, 128, true )
-			
+			StringToArrayAppend( concatenated, outputArrayByRef )		
 			if( outputArrayByRef[ 0 ] == "~~none~~" )
 			{
 				switch( slotClass )

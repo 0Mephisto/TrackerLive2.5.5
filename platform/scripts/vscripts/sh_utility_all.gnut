@@ -2698,6 +2698,32 @@ array<string> function StringToArray( string str, int arrayStringMaxLength = 128
     return valid
 }
 
+void function StringToArrayAppend( string str, array<string> refArray, int arrayStringMaxLength = 128 ) 
+{		
+	string t_str = strip( str )	
+    if ( t_str == "" )
+        throw "Cannot convert empty string to array in " + FUNC_NAME( 1 ) + "()"
+	
+    array<string> arr = split( str, "," )
+	
+	int length_check
+	int item_index
+    foreach ( item in arr ) 
+	{
+		item_index++
+		
+		item = strip( item )
+		length_check = item.len()
+	
+        if ( item == "" )
+            printw( "Empty item in the list for item #", item_index, "removed." )			
+		else if ( length_check >= arrayStringMaxLength )
+			printw( "item #", item_index, "is too long and was removed. Length:", length_check, "; Max:", arrayStringMaxLength, "chars" )	
+		else	
+			refArray.append( item )		
+    }
+}
+
 string function truncate( string str, int limit ) 
 {
     if ( str.len() > limit ) 
