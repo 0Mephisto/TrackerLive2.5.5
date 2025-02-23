@@ -158,15 +158,10 @@ WeaponData
             "viewmodel" 							"mdl/weapons/health_injector/ptpov_health_injector.rmdl"
             "playermodel" 							"mdl/Weapons/health_injector/w_health_injector.rmdl"
             "printname"                             "#SURVIVAL_PICKUP_HEALTH_LARGE"
-
-                                
-                                                         
-                                                          
-                 
-            "charge_time"                           "7.0"
+      
+            "charge_time"                           "8.0"
             "charge_sound_1p"						"Health_Syringe_Charge"
-            "charge_sound_3p"						"Health_Syringe_Charge_3p"
-                  
+            "charge_sound_3p"						"Health_Syringe_Charge_3p"                 
 
 		    "hud_icon"                              "rui/hud/loot/loot_stim_health_large"
 			"activitymodifier"						"health_prop"
@@ -197,10 +192,9 @@ WeaponData
             "viewmodel" 							"mdl/weapons/shield_battery/ptpov_shield_battery_small_held.rmdl"
             "playermodel" 							"mdl/Weapons/shield_battery/w_shield_battery_small.rmdl"
             "printname"                             "#SURVIVAL_PICKUP_HEALTH_COMBO_SMALL"
-            "charge_time"                           "2.0"
+            "charge_time"                           "2.5"
             "charge_sound_1p"						"shield_battery_charge_short"
-            "charge_sound_3p"						"shield_battery_charge_short_3p"
-                  
+            "charge_sound_3p"						"shield_battery_charge_short_3p"                 
 
             "hud_icon"                              "rui/hud/loot/loot_stim_shield_small"
 			"activitymodifier"						"shield_prop"
@@ -227,10 +221,9 @@ WeaponData
             "viewmodel" 							"mdl/weapons/shield_battery/ptpov_shield_battery_held.rmdl"
             "playermodel" 							"mdl/Weapons/shield_battery/w_shield_battery.rmdl"
             "printname"                             "#SURVIVAL_PICKUP_HEALTH_COMBO_LARGE"
-            "charge_time"                           "4.0"
+            "charge_time"                           "5.0"
             "charge_sound_1p"						"shield_battery_charge"
-            "charge_sound_3p"						"shield_battery_charge_3p"
-                  
+            "charge_sound_3p"						"shield_battery_charge_3p"                
 
             "hud_icon"                              "rui/hud/loot/loot_stim_shield_large"
 			"activitymodifier"						"shield_prop"
@@ -281,7 +274,7 @@ WeaponData
             "viewmodel" 							"mdl/weapons/shield_battery/ptpov_shield_battery_held.rmdl"
             "playermodel" 							"mdl/Weapons/shield_battery/w_shield_battery.rmdl"
             "printname"                             "#SURVIVAL_PICKUP_HEALTH_COMBO_FULL"
-            "charge_time"                           "9.0"
+            "charge_time"                           "10.0"
             "hud_icon"                              "rui/hud/loot/loot_stim_combo_full"
  			"activitymodifier"						"shield_prop"
 
@@ -309,7 +302,7 @@ WeaponData
             "viewmodel" 							"mdl/weapons/ultimate_accelerant/ptpov_ultimate_accelerant_held.rmdl"
             "playermodel" 							"mdl/Weapons/ultimate_accelerant/w_ultimate_accelerant.rmdl"
             "printname"                             "#SURVIVAL_PICKUP_HEALTH_ULTIMATE"
-            "charge_time"                           "6.0"
+            "charge_time"                           "7.0"
             "hud_icon"                              "rui/hud/loot/loot_health_ultimate"
  			"activitymodifier"					"ultimate_battery"
 
