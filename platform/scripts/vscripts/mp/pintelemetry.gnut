@@ -2673,10 +2673,7 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 }
 
 	void function __EndFight( entity victim, entity attacker, var damageInfo, float deathtime )
-	{
-		if( Flowstate_IsFastInstaGib() )
-			WaitEndFrame() //all data this function needs may not be wrote by it's coroutine yet.
-		
+	{	
 		if( !damageInfo )
 		{
 			#if DEVELOPER
@@ -2685,6 +2682,11 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 			return
 		}
 		
+		int damageSourceID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
+		
+		if( Flowstate_IsFastInstaGib() )
+			WaitEndFrame()
+		
 		if ( !IsValid( victim ) || ( !victim.IsPlayer() && !victim.IsNPC() ) || !IsValid( attacker ) )
 		{
 			#if DEVELOPER
@@ -2692,10 +2694,9 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 			#endif
 			
 			return
-		}
+		}		
 		
 		bool victimIsPlayer = victim.IsPlayer()
-		int damageSourceID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
 		
 		//Increment fightid
 		int id = GetUniqueFightId()
@@ -2743,7 +2744,7 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 		}
 			
 		int victim_handle = victim.GetEncodedEHandle()
-		int attacker_handle = attacker.IsPlayer() ? attacker.p.handle : DamageInfo_GetDamageSourceIdentifier( damageInfo )
+		int attacker_handle = attacker.IsPlayer() ? attacker.p.handle : damageSourceID
 
 		if( attacker_handle == eDamageSourceId.bleedout )
 		{
@@ -3219,7 +3220,7 @@ void function RemoveDamageEvents( int attacker_handle, int victim_handle ) //Tod
 			}
 			else 
 			{
-				int attackerID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
+				int attackerID = damageSourceID
 				
 				a_OID = GetWorldSpawnRef( attackerID )
 				
@@ -3564,7 +3565,7 @@ DamageEvent function Tracker_GetRecentDamageEvent( int eventID )
 #endif
 
 void function Tracker_OnPlayerDamaged( entity victim, var damageInfo )
-{	
+{
 	#if DEVELOPER && DEBUGDMG
 		file.damageInfo = damageInfo 
 	#endif
