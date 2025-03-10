@@ -120,7 +120,8 @@ void function RegisterAllChatCommands() //if chat commands enabled.
 		case ePlaylists.fs_scenarios:
 		
 			Commands_Register( "!rest", cmd_rest, [ "/rest", "\\rest" ] )
-			break 
+			Commands_Register( "!team", cmd_team, [ "/team", "\\team" ] )
+			break
 			
 		case ePlaylists.fs_1v1:
 		case ePlaylists.fs_lgduels_1v1:
@@ -336,6 +337,12 @@ void function UnlockOrLockServer( entity activator, string state )
 	
 	ClientCommand_mkos_admin( activator, args )
 }
+
+void function cmd_team( string tag, array<string> args, entity activator )
+{
+	FS_Scenarios_CustomTeamCmd( activator, args )
+}
+
 
 /////////////
 /// Chat  //////////////////////////////////////////////////////////////////////////////////////////

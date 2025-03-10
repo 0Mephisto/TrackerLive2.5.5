@@ -394,8 +394,8 @@ void function FS_Scenarios_UpdatePlayerScore( entity player, int event, entity v
 	
 	table<int,int> function ScenariosPersistence_FetchPlayerScoreTable( string uid )
 	{
-		#if DEVELOPER 
-			mAssert( ScenariosPersistence_PlayerExists( uid ) )
+		#if DEVELOPER
+			mAssert( ScenariosPersistence_PlayerExists( uid ), format( "Scenarios pData slot doesn't exist for \"%s\"", uid ) )
 		#endif
 		
 		return file.scenariosPlayerScorePersistence[ uid ]

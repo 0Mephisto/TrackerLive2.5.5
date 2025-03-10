@@ -187,7 +187,7 @@ global struct ServerEntityStruct
 	bool isHotDropping
 
 	bool spawnPointInUse
-	entity lastAttacker
+	entity lastAttacker //(mk): not even used,  ( .e.lastAttacker IS used )
 
 	// sticky props
 	float spawnTime = 0.0
@@ -1167,6 +1167,8 @@ global struct ServerPlayerStruct
 	int submitCringeCount
 	int cringedCount
 	array< CringeReport > cringeDataReports
+	
+	bool hasTeam
 }
 
 global struct ChallengeScore

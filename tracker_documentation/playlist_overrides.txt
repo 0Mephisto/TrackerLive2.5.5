@@ -1,0 +1,178 @@
+If using the new teams feature of scenarios, the following tokens must be placed within SECTION 4 of the playlist
+If you have your own MOTD, make sure to replace it back.
+
+FINAL IMPORTANT NOTE: Make sure you have an ending bracket:    }
+The last bracket should be the closing bracket for the playlists file it self.
+
+The below text only has the     "LocalizedStrings"      and     "KVFileOverrides"     formatted correctly.
+
+
+
+
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////	SECTION 4: OVERRIDES	///////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	"LocalizedStrings"
+	{	
+	  "lang"
+		{
+			"Language" "english"
+			"Tokens"
+			{
+				"MP_RR_DESERTLANDS_HOLIDAY"						"WINTER EXPRESS"
+				"MP_RR_CONSTRUCT"								"MP_RR_CONSTRUCT"
+				"MP_RR_OLYMPUS_MU1"					  			"Olympus MU1 (Alpha Version)"
+				"MP_FLOWSTATE"						  			"Creative"
+				"MP_RR_DESERTLANDS_64K_X_64K_NX"	  			"World's Edge After Dark"
+				"MP_RR_DESERTLANDS_64K_X_64K"		 			"World's Edge"
+				"MP_RR_DESERTLANDS_64K_X_64K_TT"	  			"World's Edge Mirage Voyage"
+				"MP_RR_ASHS_REDEMPTION"			   				"Ash's Redemption"
+				"MP_RR_AQUEDUCT"					  			"Overflow"
+				"MP_RR_AQUEDUCT_NIGHT"							"Overflow After Dark"
+				"mp_rr_arena_empty"								"Creative"
+				"MP_RR_ARENA_COMPOSITE"			   				"Drop-Off"
+				"MP_RR_ARENA_SKYGARDEN"			   				"Encore"
+				"MP_RR_PARTY_CRASHER" 		  		  			"Party Crasher"
+				"mp_rr_arena_phase_runner"						"Phase Runner"
+
+				"MP_RR_CANYONLANDS_64K_X_64K"		 			"Kings Canyon"
+				"MP_RR_CANYONLANDS_MU1"			   				"Kings Canyon MU1"
+				"MP_RR_CANYONLANDS_MU2"			   				"Kings Canyon MU2"
+				"MP_RR_CANYONLANDS_MU1_NIGHT"		 			"Kings Canyon After Dark"
+				"Playtest"										"Playtest"
+				"Playtest_Only"					   				"Playtest"
+				"PLAYER_KILLSTREAK"				   				"`1%s1`0 is on a `1%s2`0 player killstreak"
+				"PLAYER_ENDED_KILLSTREAK"			 			"`1%s1`0 ended `1%s2`0's killstreak"
+				"PLAYER_ENDED_OWN_KILLSTREAK"		 			"`1%s1`0 ended their own killstreak"
+
+				"VALVE_REJECT_BANNED"				 			"You have been banned from this server."
+				"DISCONNECT_BANNED"				   				"The client's game account has been banned."
+
+				"DISCONNECT_SEND_RELIABLEOVERFLOW"				"Connection to server overflowed (code:river)."
+				"DISCONNECT_SEND_OVERFLOW"						"Connection to server overflowed (code:dam)."
+				"DISCONNECT_NETCHAN_OVERFLOW"		 			"Connection to server overflowed (code:vulkan)."
+				"DISCONNECT_STRINGCMD_OVERFLOW"	   				"Connection to server overflowed (code:skillissue)."
+				"MOTD"								  			"What's new in R5Reloaded? \n\nFlowstate Scripts now uses S21 retail scripts as base. Enjoy updated map features and hundred of bugs fixes. \n\nIt also features new modes: \nLG Duels, Cafe's Instagib, Winter Express, Zone Wars, Movement Recorder, Search and Destroy, Surf, Halo Mod and two new movement practice modes! \n\nNew maps: \n   -Kings Canyon MU2 (S5)\n    -Phase Runner\n    -World's Edge Holiday (Winter Express)\n    -mp_rr_construct (custom)\n    -Empty Map (custom) \n\n Flowstate Scripts (Gameplay) brought to you by @CafeFPS, @ttvmkos and collaborators.\nR5Reloaded (Engine) by @AmosModz and collaborators."
+				"BETA_BUILD_WATERMARK" 				  			""
+				"FS_PLAYLIST_MOTD"					  			"Flowstate x R5Reloaded" 		//1000 char max
+				"FS_PLAYLIST_MOTD_CONTINUE"			  			"" 								//append to first - 1000 char limit
+
+				"TMP_0" "\n\n\n\n\n\n\n\n\n\n\n\n/team help                           - lists commands\n/team list                             - lists teams #\n/team make [name]                                               - makes a team\n/team info [player|uid|team ID]                       - info about team\n/team join [captain name/uid | team id]      - joins a team\n/team leave                                                               - leaves a team -> if no captains exist, team is destroyed\n\nCaptain only:\n\n/team accept [player|uid|id]                    - accepts join request by player or request id\n/team reject [player|uid|id]                      - declines join request by player or request id\n/team kick [player|uid|team member #]                       - kicks member from team\n/team makecaptain [player|uid|team member #]    - gives player captain privileges\n/team settings                                                 - lists teams settings and their values\n/team set [setting] [value]                         - sets a team setting"
+				"TMP_1" "Already in team"
+				"TMP_2" "Error with command parameter length"
+				"TMP_3" "Invalid team"
+				"TMP_4" "Player does not own a team"
+				"TMP_6" "Team is full"
+				"TMP_7" "Join request cooldown"
+				"TMP_8" "Not in a team"
+				"TMP_9" "Player left the team: "
+				"TMP_10" "Player joined the team: "
+				"TMP_11" "You joined team: "
+				"TMP_12" "Failed to join team: "
+				"TMP_13" "New join request: "
+				"TMP_14" "Team join request sent to: "
+				"TMP_15" "You left team: "
+				"TMP_16" "Failed to leave team: "
+				"TMP_17" "Join request failed for team: "
+				"TMP_18" "Failed. Max length for teamname is: "
+				"TMP_19" "Team created successfully"
+				"TMP_20" "Failed to create team"
+				"TMP_21" "Command \"team info\" Requires team # or player of team as last parameter"
+				"TMP_22" "All Teams"
+				"TMP_23" "Team info"
+				"TMP_24" "Help info"
+				"TMP_25" "Team was dismantled"
+				"TMP_26" "Join requests"
+				"TMP_27" "Command requires last parameter of id/player"
+				"TMP_28" "Failed to accept/reject request"
+				"TMP_29" "Invalid request player"
+				"TMP_30" "Request revoked for: "
+				"TMP_31" "Invalid team player"
+				"TMP_32" "Failed to kick player"
+				"TMP_33" "Player not on team"
+				"TMP_34" "Player already captain"
+				"TMP_35" "Added as captain: "
+				"TMP_36" "Team Settings"
+				"TMP_37" "Not captain of team"
+				"TMP_38" "Invalid setting"
+				"TMP_39" "Setting is already this value"
+				"TMP_40" "Invalid value for setting. Numbers only"
+				"TMP_41" "Setting successfully set"
+				"TMP_42" "Command requires setting & value. ex: /team set fill 0"
+				"TMP_43" "Admin has disable teams"
+				"TMP_44" "Not on any team"
+				"TMP_45" "Success"
+				"TMP_46" "Failed"
+			}
+		}
+	}
+	
+	"KVFileOverrides"
+	{	
+		"scripts/weapons/blast_patterns.txt"
+		{
+			"mastiff_2"
+			{
+				"bullet_0" "15 0.0 0 0"
+				"bullet_1" "8.0 0.0 0 0"
+				"bullet_2" "3.75 0.0 0 0"
+				"bullet_3" "-3.75 0.0  0 0"
+				"bullet_4" "-8.0 0.0  0 0"
+				"bullet_5" "-15 0.0  0 0"
+			}
+
+			"eva8"
+			{
+				"bullet_0" "-7.0 7.0 0 0"
+				"bullet_1" "0.0 11.0 0 0"
+				"bullet_2" "7.0 7.0 0 0"
+				"bullet_3" "-3.5 0.0 0 0"
+				"bullet_4" "3.5 0.0 0 0"
+				"bullet_5" "-7.0 -7.0 0 0"
+				"bullet_6" "0.0 -11.0 0 0"
+				"bullet_7" "7.0 -7.0 0 0"
+			}
+		}
+	
+		"scripts/weapons/mp_ability_consumable.txt"
+		{
+			WeaponData
+			{
+				Mods
+				{
+					health_small
+					{
+						"charge_time"                           "4.0"
+					}
+
+					health_large
+					{
+						"charge_time"                           "8.0"
+					}
+
+					shield_small
+					{
+						"charge_time"                           "2.5"
+					}
+
+					shield_large
+					{
+						"charge_time"                           "5.0"
+					}
+					
+					phoenix_kit
+					{
+						"charge_time"                           "10.0"
+					}
+
+					ultimate_battery
+					{
+						"charge_time"                           "7.0"
+					}
+				}
+			}
+		}
+	}

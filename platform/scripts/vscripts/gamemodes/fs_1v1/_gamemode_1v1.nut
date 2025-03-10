@@ -66,8 +66,7 @@ global function IsCurrentState
 global function ValidateBlacklistedWeapons
 
 global typedef PanelTable table<string, entity>
-const bool TEST_WORLDDRAW = false
-
+const bool DEBUG_STATE		= false
 //DEV 
 #if DEVELOPER
 	global function DEV_printlegends
@@ -421,7 +420,7 @@ void function Gamemode1v1_SetPlayerGamestate( entity player, int state = 0 )
 		foreach( callbackFunc in player.e.onPlayerGamestateChangedCallbacks )
 			callbackFunc( player, state )
 	}
-	#if DEVELOPER
+	#if DEVELOPER && DEBUG_STATE
 		else if( !IsCurrentState( player, e1v1State.SEQUENCE ) )
 		{
 			DumpStack()
@@ -694,7 +693,7 @@ void function ValidateWeaponList( string weaponList, string weaponListContinue, 
 
         try
         {
-			StringToArrayAppend( concatenated, outputArrayByRef )		
+			StringToArrayAppend( concatenated, outputArrayByRef )	
 			if( outputArrayByRef[ 0 ] == "~~none~~" )
 			{
 				switch( slotClass )
@@ -3316,46 +3315,7 @@ void function Gamemode1v1_Init( int eMap )
 
 	forbiddenZoneInit( GetMapName() )
 	
-	thread Gamemode1v1_soloModeThread( getWaitingRoomLocation() )
-	
-	#if TEST_WORLDDRAW
-		AddCallback_OnClientConnected
-		(
-			void function( entity player ) 
-			{
-				float imgWidth = 600
-				float imgHeight = 380
-				
-				int refID = WorldDrawAsset_CreateOnClient
-				(
-					player,
-					"",
-					Gamemode1v1_GetNotificationPanel_Coordinates() + <0,0,imgHeight>,
-					Gamemode1v1_GetNotificationPanel_Angles(),
-					imgWidth,
-					imgHeight,
-					WorldDrawAsset_AssetRefToID( "rui/flowstate_custom/mkos/1v1banner" )
-				)
-				
-				// WorldDrawAsset_Timed
-				// (
-					// player, 
-					// "rui/flowstate_custom/mkos/1v1banner",
-					// Gamemode1v1_GetNotificationPanel_Coordinates() + <0,0,imgHeight>,
-					// Gamemode1v1_GetNotificationPanel_Angles(),
-					// imgWidth,
-					// imgHeight,
-					// -1, //WorldDrawAsset_AssetRefToID( "rui/flowstate_custom/mkos/1v1banner" ),
-					// -1, //no alpha change
-					// 15  //duration
-				// )
-				
-				#if DEVELOPER 
-					printt( "SERVER: Created WorldDrawImg on client for", player, "with ID:", refID )
-				#endif
-			}
-		)
-	#endif
+	thread Gamemode1v1_soloModeThread( getWaitingRoomLocation() )	
 	
 	AddCallback_OnClientConnected
 	( 
@@ -3910,6 +3870,9 @@ void function soloModeThread( LocPair waitingRoomLocation )
 				{
 					maki_tp_player( player, g_randomWaitingSpawns.getrandom() ) //waiting player should be in waiting room,not battle area
 					HolsterAndDisableWeapons_Raw( player ) //(mk): dirty fix I wanted to avoid.
+					
+					if( !isPlayerInRestingList( player ) && !isPlayerInWaitingList( player ) )
+						soloModePlayerToWaitingList( player ) //(mk): dirty patch
 				}
 			//#endif
 		}
@@ -4157,7 +4120,7 @@ void function soloModeThread( LocPair waitingRoomLocation )
 			newGroup.player2_handle = newGroup.player2.p.handle
 		
 			//TODO: verify this
-			if ( ( Fetch_IBMM_Timeout_For_Player( newGroup.player1 ) == false && Fetch_IBMM_Timeout_For_Player( newGroup.player2 ) == false ) || newGroup.player1.p.input == newGroup.player2.p.input )			
+			if( GroupIsLockable( newGroup ) )
 				newGroup.GROUP_INPUT_LOCKED = true
 			else
 				newGroup.GROUP_INPUT_LOCKED = false
@@ -4268,8 +4231,8 @@ void function FS_1v1_OnPlayerDisconnected( entity player )
 	if( IsValid( opponent ) )
 		endLock1v1( opponent )
 	
-	if( playerHandle in file.acceptedChallenges )
-		delete file.acceptedChallenges[ playerHandle ]
+	// if( playerHandle in file.acceptedChallenges ) //
+		// delete file.acceptedChallenges[ playerHandle ]
 	
 	foreach( index, zstruct in file.allChallenges )
 	{
@@ -5104,6 +5067,10 @@ void function SetInput_IN_FORWARD( entity player )
 	player.p.movevalue = 6
 }
 
+bool function GroupIsLockable( soloGroupStruct newGroup )
+{
+	return ( newGroup.player1.p.lastmoved > 2 && newGroup.player2.p.lastmoved > 2 && ( ( Fetch_IBMM_Timeout_For_Player( newGroup.player1 ) == false && Fetch_IBMM_Timeout_For_Player( newGroup.player2 ) == false ) || newGroup.player1.p.input == newGroup.player2.p.input ) )	
+}
 
 bool function ClientCommand_mkos_IBMM_wait( entity player, array<string> args )
 {
