@@ -4127,6 +4127,7 @@ void function UpdateFromLocalPersistence( entity player )
 	player.p.lock1v1_setting		= GetPlayer_lock1v1_setting( player )	
 	player.p.start_in_rest_setting 	= GetPlayer_start_in_rest_setting( player )
 	player.p.enable_input_banner 	= GetPlayer_enable_input_banner_setting( player )
+	player.p.max_ping				= GetPlayer_max_ping( player )
 	
 	player.SetPlayerNetInt( "kills", GetPlayerKills( player ) )
 	player.SetPlayerNetInt( "deaths", GetPlayerDeaths( player ) )
@@ -4145,6 +4146,7 @@ void function Gamemode1v1_PlayerDataCallbacks()
 	AddCallback_PlayerData( "lock1v1_setting", UpdateLock1v1Setting )
 	AddCallback_PlayerData( "start_in_rest_setting", UpdateStartInRestSetting )
 	AddCallback_PlayerData( "enable_input_banner", UpdateInputBannerSetting )
+	AddCallback_PlayerData( "max_ping", UpdateMaxPing )
 }
 
 // utility funcitons for fetch/save playerdata 
@@ -4607,6 +4609,17 @@ bool function GetPlayer_enable_input_banner_setting( entity player )
     return GetDefaultEnableInputBannerSetting() 
 }
 
+
+float function GetPlayer_max_ping( entity player ) 
+{
+	string setting = Tracker_FetchPlayerData( player.p.UID, "max_ping" ) 
+	
+	if ( !empty( setting ) )
+		return setting.tofloat()
+	
+    return 999.0
+}
+
 bool function GetDefaultLock1v1Setting()
 {
 	return file.DefaultLock1v1Setting
@@ -4701,6 +4714,23 @@ void function UpdateInputBannerSetting( entity player, string data )
 		player.p.enable_input_banner = true
 	else 
 		player.p.enable_input_banner = GetDefaultEnableInputBannerSetting()
+}
+
+void function UpdateMaxPing( entity player, string data )
+{	
+	float max_ping = 999.0
+
+	if( empty( data ) )
+		data = "999.0"
+	
+	if( IsNumeric( data ) )
+	{
+		max_ping = data.tofloat()
+		if( max_ping < 50.0)
+			max_ping = 50.0
+	}	
+
+	player.p.max_ping = max_ping
 }
 
 // END PERSISTENCE //////////////////////////////////////////////////////////////

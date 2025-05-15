@@ -820,6 +820,7 @@ global struct ServerPlayerStruct
 	float lastInputChangeTime
 	float last_input_time
 	float IBMM_grace_period 	= -1 // <= 0 is disabled
+	float max_ping				= 999.0
 	int movevalue 				= 0
 	int p_damage 				= 3 //for lgduel default dmg/heal ; BAD var name (TODO: DEPRECATE)
 	int season_kills 			= 0 //(TODO: DEPRECATE)

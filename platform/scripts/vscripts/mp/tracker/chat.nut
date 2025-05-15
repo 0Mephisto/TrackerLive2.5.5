@@ -130,7 +130,9 @@ void function RegisterAllChatCommands() //if chat commands enabled.
 			Commands_Register( "!wait", cmd_wait, [ "/wait", "\\wait" ] )
 			Commands_Register( "!rest", cmd_rest, [ "/rest", "\\rest" ] )
 			Commands_Register( "!info", cmd_info, [ "/info", "\\info" ] )
-			
+
+			Commands_Register( "!maxping", cmd_maxping, [ "/maxping", "\\maxping" ] )
+
 			if( GetCurrentPlaylistVarBool( "enable_challenges", true ) )
 			{
 					Commands_Register( "!chal", cmd_chal, [ "/chal", "\\chal", "!challenge", "/challenge", "\\challenge" ] )
@@ -197,6 +199,12 @@ void function cmd_cringe( string tag, array<string> args, entity activator )
 	}
 }
 
+
+void function cmd_maxping( string tag, array<string> args, entity activator )
+{
+	args.remove( 0 )
+	ClientCommand_meph_max_ping_setting( activator, args )
+}
 
 void function cmd_wait( string tag, array<string> args, entity activator )
 {

@@ -29,6 +29,7 @@ global function Gamemode1v1_SetWaitingRoomRadius
 global function Gamemode1v1_FetchNotificationPanelCoordinates
 global function Gamemode1v1_FetchNotificationPanelAngles
 global function ClientCommand_mkos_IBMM_wait
+global function ClientCommand_meph_max_ping_setting
 global function g_bRestEnabled
 global function AddEntityCalllback_OnPlayerGamestateChange_1v1
 global function RemoveEntityCalllback_OnPlayerGamestateChange_1v1
@@ -2319,8 +2320,9 @@ entity function getRandomOpponentOfPlayer( entity player )
     {   			
         if ( IsValid( eachPlayerStruct.player ) && player != eachPlayerStruct.player && !eachPlayerStruct.player.p.waitingFor1v1 )
 		{
-            if ( eachPlayerStruct.player.p.input == player.p.input || ( eachPlayerStruct.IBMM_Timeout_Reached == true && Fetch_IBMM_Timeout_For_Player( player ) == true ) )
-                eligible.append(eachPlayerStruct.player)
+            if ( eachPlayerStruct.player.GetLatency() * 1000 < player.p.max_ping && ( player.GetLatency() * 1000 < eachPlayerStruct.player.p.max_ping )
+			&& ( eachPlayerStruct.player.p.input == player.p.input || ( eachPlayerStruct.IBMM_Timeout_Reached == true && Fetch_IBMM_Timeout_For_Player( player ) == true ) ) )
+				eligible.append(eachPlayerStruct.player)
 		}
     }
 	
@@ -3110,6 +3112,7 @@ void function Gamemode1v1_Init( int eMap )
 		AddClientCommandCallback( "lock1v1", ClientCommand_mkos_lock1v1_setting )
 		AddClientCommandCallback( "enable_input_banner", ClientCommand_enable_input_banner )
 		AddClientCommandCallback( "challenge", ClientCommand_mkos_challenge )
+		AddClientCommandCallback( "maxping", ClientCommand_meph_max_ping_setting )
 	}
 	
 	if( Playlist() == ePlaylists.fs_lgduels_1v1 )
@@ -4038,6 +4041,12 @@ void function soloModeThread( LocPair waitingRoomLocation )
 					if( !IsValid( eachOpponent ) || playerSelf == eachOpponent )//过滤非法对手
 						continue
 						
+					if ( eachOpponent.GetLatency() * 1000 > playerSelf.p.max_ping )
+						continue
+
+					if ( playerSelf.GetLatency() * 1000 > eachOpponent.p.max_ping )
+						continue
+
 					if( fabs( selfKd - opponentKd ) > file.SBMM_kd_difference ) //过滤kd差值
 						continue
 						
@@ -5224,6 +5233,49 @@ bool function ClientCommand_mkos_start_in_rest_setting( entity player, array<str
 		}
 		
 	return false					
+}
+
+bool function ClientCommand_meph_max_ping_setting( entity player, array<string> args )
+{
+	if ( !CheckRate( player ) ) 
+		return true
+
+	string param = ""
+	
+	if ( args.len() > 0 )
+		param = args[ 0 ]
+
+	if ( args.len() < 1 )
+	{	
+		LocalMsg_TEMP( player, "FS_SUCCESS", "#FS_MAX_PING_Help", eMsgUI.DEFAULT, 15 )
+		return true
+	}
+				
+	if ( args.len() > 0 && !IsNumeric( param ) )
+	{
+		LocalMsg_TEMP( player, "#FS_FAILED", "#FS_MAX_PING_Invalid_Input", eMsgUI.DEFAULT, 5 )
+		return true
+	} 		
+	
+	try
+	{	
+		float user_value = float( param )
+		
+		if ( user_value < 50.0 )
+			user_value = 50.0
+		
+		player.p.max_ping = user_value
+		SavePlayerData( player, "max_ping", user_value )
+		Remote_CallFunction_ByRef( player, "ForceScoreboardLoseFocus" )
+		
+		//TODO: Add localized string tokens
+		LocalMsg_TEMP( player, "#FS_SUCCESS", "#FS_MAX_PING_Update_Success", eMsgUI.DEFAULT, 3 )
+		return true
+	}
+	catch ( hiterr )
+	{
+		return true			
+	}				
 }
 
 bool function ClientCommand_enable_input_banner( entity player, array<string> args )
